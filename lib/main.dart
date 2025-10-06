@@ -6,6 +6,8 @@ import 'package:interactive_map/Homepages/firstPage.dart';
 import 'package:interactive_map/Homepages/mainPage.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:interactive_map/Homepages/mainPageGuest.dart';
+import 'package:interactive_map/theme/colors.dart';
+
 
 import 'Backend/auth.dart';
 
@@ -47,8 +49,21 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Interactive Map',
       theme: ThemeData(
-        primarySwatch: mainColor,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: AppColors.background,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.primary,
+          brightness: Brightness.light,
+        ),
+        appBarTheme: const AppBarTheme(
+          elevation: 0,
+          backgroundColor: AppColors.background,
+          foregroundColor: AppColors.text,
+          centerTitle: true,
+        ),
+        cardColor: AppColors.card,
+        dividerColor: AppColors.border,
+        useMaterial3: true,
       ),
       home: const FirstPage(),
     );

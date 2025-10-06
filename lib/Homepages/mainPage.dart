@@ -3,12 +3,15 @@
 import 'package:flutter/material.dart';
 import 'package:interactive_map/ContactUs.dart';
 import 'package:interactive_map/Gallery/Gallery.dart';
-import 'package:interactive_map/Homepages/startPage.dart';
 import 'package:interactive_map/My%20Stories/Stories.dart';
 import 'package:interactive_map/profilePage.dart';
 import 'package:interactive_map/Timeline/timeline.dart';
 import 'package:interactive_map/profileStart.dart';
 import '../Map/map.dart';
+import 'package:interactive_map/Homepages/home_page.dart';
+import 'package:interactive_map/theme/colors.dart';
+
+
 
 class WelcomePage extends StatelessWidget {
   @override
@@ -38,7 +41,7 @@ class _Body extends State<Body> {
     3: "رواياتي",
     4: "عرض الروايات",
     5: "الخارطه",
-    6: 'خارطه و ذاكرة'
+    6: 'الرئيسية'
   };
   late Widget appBarContent, appBarText;
   late TextEditingController appBarController;
@@ -78,7 +81,7 @@ class _Body extends State<Body> {
       3: Stories(),
       4: Gallery(),
       5: MapPage(),
-      6: StartPage(),
+      6: HomePage(onSelectIndex: changePage), // was StartPage()
     };
     setAppBar();
   }
@@ -97,9 +100,9 @@ class _Body extends State<Body> {
       ),
       body: pageMap[currentIndex],
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.black,
-        fixedColor: Colors.white,
-        unselectedItemColor: const Color(0x60FFFFFF),
+        backgroundColor: AppColors.background,
+        fixedColor: AppColors.primary,
+        unselectedItemColor: AppColors.muted,
         currentIndex: currentIndex,
         onTap: (index) {
           changePage(index);
@@ -259,7 +262,7 @@ class _Body extends State<Body> {
                 ),
                 Container(
                     padding: EdgeInsets.fromLTRB(2, 0, 2, 0),
-                    child: Icon(Icons.info_outline)),
+                    child: Icon(Icons.home_outlined)),
               ],
             ),
           ),

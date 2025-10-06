@@ -121,9 +121,9 @@ retrieveUser() async {
 
 class _FirstPage extends State<FirstPage> {
   locationPerm.Location locationAcc = locationPerm.Location();
-  late bool _serviceEnabled;
-  late locationPerm.PermissionStatus _permissionGranted;
-  late locationPerm.LocationData _locationData;
+  //late bool _serviceEnabled;
+  //late locationPerm.PermissionStatus _permissionGranted;
+  //late locationPerm.LocationData _locationData;
   late dynamic currLng;
   late dynamic currLat;
 

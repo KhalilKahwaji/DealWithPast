@@ -3,13 +3,16 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:interactive_map/Gallery/Gallery.dart';
-import 'package:interactive_map/Homepages/startPage.dart';
 import 'package:interactive_map/My%20Stories/Stories.dart';
 import 'package:interactive_map/My%20Stories/addStoryGuest.dart';
 import 'package:interactive_map/profilePage.dart';
 import 'package:interactive_map/Timeline/timeline.dart';
 import '../ContactUs.dart';
 import '../Map/map.dart';
+import 'package:interactive_map/Homepages/home_page.dart';
+import 'package:interactive_map/theme/colors.dart';
+
+
 
 class WelcomePageGuest extends StatelessWidget {
   @override
@@ -38,7 +41,7 @@ class _Body extends State<Body> {
     2: "الجدول الزمني",
     3: "عرض الروايات",
     4: "الخارطه",
-    5: 'خارطه و ذاكرة'
+    5: 'الرئيسية'
   };
   late Widget appBarContent, appBarText;
   late TextEditingController appBarController;
@@ -77,7 +80,7 @@ class _Body extends State<Body> {
       2: const Timeline(),
       3: const Gallery(),
       4: const MapPage(),
-      5: const StartPage(),
+      5: HomePage(onSelectIndex: changePage), //was StartPage()
     };
     setAppBar();
   }
@@ -96,9 +99,9 @@ class _Body extends State<Body> {
       ),
       body: pageMap[currentIndex],
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.black,
-        fixedColor: Colors.white,
-        unselectedItemColor: const Color(0x60FFFFFF),
+        backgroundColor: AppColors.background,
+        fixedColor: AppColors.primary,
+        unselectedItemColor: AppColors.muted,
         currentIndex: currentIndex,
         onTap: (index) {
           changePage(index);
@@ -234,7 +237,7 @@ class _Body extends State<Body> {
                 ),
                 Container(
                     padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
-                    child: Icon(Icons.info_outline)),
+                    child: Icon(Icons.home_outlined)),
               ],
             ),
           ),
