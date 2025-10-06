@@ -229,7 +229,7 @@ class _Body extends State<Body> {
                     end: Alignment.bottomCenter,
                     colors: const [
                       Colors.grey,
-                      Colors.black,
+                      Color.fromARGB(255, 177, 55, 55),
                     ],
                   )),
                 ),

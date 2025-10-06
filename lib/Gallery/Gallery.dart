@@ -98,10 +98,10 @@ class _Gallery extends State<Gallery> {
         builder: (context, AsyncSnapshot snapshot) {
           if (!snapshot.hasData) {
             return const Scaffold(
-                backgroundColor: Color(0xFF252422),
+                backgroundColor: Color.fromARGB(255, 37, 34, 37),//color of loading screen background
                 body: Center(
                     child: CircularProgressIndicator(
-                  color: Color(0xFFFFDE73),
+                  color: Color(0xFFFFDE73),//color of loading indicator
                 )));
           } else {
             return GalleryView(stories, token);

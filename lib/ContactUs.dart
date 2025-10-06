@@ -26,7 +26,7 @@ class _ContactUsState extends State<ContactUs> {
     // ignore: avoid_unnecessary_containers
     return Container(
         height: double.infinity,
-        color: const Color(0xFF252422),
+        color: Color.fromARGB(255, 255, 255, 255),
         child: SingleChildScrollView(
           child: Column(children: [
             const SizedBox(
@@ -37,7 +37,7 @@ class _ContactUsState extends State<ContactUs> {
               "أرسل لنا رسالة بأي شيء تريد معرفته أو الاستفسار عنه، وسنعاود الاتصال بك على الفور.",
               textAlign: TextAlign.center,
               style: TextStyle(
-                  color: Colors.white, fontFamily: 'Baloo', fontSize: 25),
+                  color: Color.fromARGB(255, 0, 0, 0), fontFamily: 'Baloo', fontSize: 25),
             )),
             Form(
               key: _formKey,
@@ -52,7 +52,7 @@ class _ContactUsState extends State<ContactUs> {
                         }
                       },
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: Color.fromARGB(255, 0, 0, 0),
                         fontFamily: 'Baloo',
                       ),
                       controller: nameController,
@@ -61,14 +61,14 @@ class _ContactUsState extends State<ContactUs> {
                             borderSide: BorderSide(color: Colors.red),
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.white),
+                            borderSide: BorderSide(color: Color.fromARGB(255, 0, 0, 0)),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.white),
+                            borderSide: BorderSide(color: Color.fromARGB(255, 0, 0, 0)),
                           ),
                           labelText: 'الإسم',
                           labelStyle: TextStyle(
-                            color: Colors.white,
+                            color: Colors.black,
                             fontFamily: 'Baloo',
                           )),
                     ),
@@ -83,7 +83,7 @@ class _ContactUsState extends State<ContactUs> {
                         }
                       },
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: Colors.black,
                         fontFamily: 'Baloo',
                       ),
                       controller: phoneController,
@@ -92,14 +92,14 @@ class _ContactUsState extends State<ContactUs> {
                             borderSide: BorderSide(color: Colors.red),
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.white),
+                            borderSide: BorderSide(color: Colors.black),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.white),
+                            borderSide: BorderSide(color: Colors.black),
                           ),
                           labelText: 'رقم الهاتف',
                           labelStyle: TextStyle(
-                            color: Colors.white,
+                            color: Colors.black,
                             fontFamily: 'Baloo',
                           )),
                     ),
@@ -121,7 +121,7 @@ class _ContactUsState extends State<ContactUs> {
                         }
                       },
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: Colors.black,
                         fontFamily: 'Baloo',
                       ),
                       controller: emailController,
@@ -130,14 +130,14 @@ class _ContactUsState extends State<ContactUs> {
                             borderSide: BorderSide(color: Colors.red),
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.white),
+                            borderSide: BorderSide(color: Colors.black),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.white),
+                            borderSide: BorderSide(color: Colors.black),
                           ),
                           labelText: 'البريد الإلكتروني',
                           labelStyle: TextStyle(
-                            color: Colors.white,
+                            color: Colors.black,
                             fontFamily: 'Baloo',
                           )),
                     ),
@@ -152,7 +152,7 @@ class _ContactUsState extends State<ContactUs> {
                       },
                       maxLines: 4,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: Colors.black,
                         fontFamily: 'Baloo',
                       ),
                       controller: questionController,
@@ -161,14 +161,14 @@ class _ContactUsState extends State<ContactUs> {
                             borderSide: BorderSide(color: Colors.red),
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.white),
+                            borderSide: BorderSide(color: Colors.black),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.white),
+                            borderSide: BorderSide(color: Colors.black),
                           ),
                           labelText: 'السؤال',
                           labelStyle: TextStyle(
-                            color: Colors.white,
+                            color: Colors.black,
                             fontFamily: 'Baloo',
                           )),
                     ),

@@ -134,7 +134,7 @@ class _StoryWidgetTemplateState extends State<StoryWidgetTemplate> {
                         ),
                       ),
                       style: TextButton.styleFrom(
-                        primary: Colors.black,
+                        foregroundColor: Colors.black,
                         backgroundColor: Color(0xFFCCAF41),
                       ),
                     ),

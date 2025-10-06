@@ -13,7 +13,7 @@ class GalleryView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-        color: Color(0xFF252422),
+        color: Color.fromARGB(255, 255, 255, 255),//color of gallery background
         child: Column(children: [
           Expanded(
               child: ListView.builder(

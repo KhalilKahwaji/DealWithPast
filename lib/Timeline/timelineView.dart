@@ -32,7 +32,7 @@ class _TimelineViewState extends State<TimelineView> {
   Widget build(BuildContext context) {
     if (widget.stories.length == 0) {
       return Container(
-          color: Color(0xFF252422),
+          color: Color.fromARGB(0, 255, 255, 255),
           child: Center(
               child: Text(
             'لا يوجد أي روايات في الجدول الزمني',
@@ -41,7 +41,7 @@ class _TimelineViewState extends State<TimelineView> {
           )));
     } else {
       return Container(
-          color: Color(0xFF252422),
+          color: Color.fromARGB(255, 255, 255, 255),//bgcolor of jadwal zamani
           height: double.infinity,
           child: ListView.builder(
             itemCount: widget.stories.length,
@@ -131,7 +131,7 @@ class _TimelineViewState extends State<TimelineView> {
                                   child: Container(
                                     // margin: EdgeInsetsGeometry.lerp(a, b, t),
                                     height: 55,
-                                    color: Colors.black.withOpacity(0.5),
+                                    color: Colors.black.withOpacity(0.5),//color of the story's footer
                                     padding: EdgeInsets.fromLTRB(0, 0, 25, 0),
                                     alignment: Alignment.bottomRight,
 

@@ -74,7 +74,8 @@ class GalleryTile extends StatelessWidget {
                   child: Container(
                     // margin: EdgeInsetsGeometry.lerp(a, b, t),
                     height: 65,
-                    color: Colors.black.withOpacity(0.5),
+                    color:
+                        Colors.black.withOpacity(0.5), //color of story footer
                     padding: EdgeInsets.fromLTRB(0, 0, 20, 0),
                     alignment: Alignment.bottomRight,
                     child: GestureDetector(
@@ -117,7 +118,8 @@ class GalleryTile extends StatelessWidget {
                                     transform: Matrix4.rotationY(math.pi),
                                     child: Icon(
                                       Icons.play_arrow,
-                                      color: Color(0xFFE0C165),
+                                      color: Color.fromARGB(255, 204, 153,
+                                          1), //color of play icon
                                     ),
                                   ),
                                   Directionality(
@@ -126,7 +128,8 @@ class GalleryTile extends StatelessWidget {
                                       story.title,
                                       style: TextStyle(
                                           fontSize: 16,
-                                          color: Colors.white,
+                                          color: Colors
+                                              .white, //color of story title
                                           fontFamily: 'Baloo',
                                           fontWeight: FontWeight.bold),
                                     ),
@@ -149,7 +152,8 @@ class GalleryTile extends StatelessWidget {
                                                   story.locationName.toString(),
                                           style: TextStyle(
                                               fontSize: 16,
-                                              color: Colors.white,
+                                              color: Colors
+                                                  .white, //color of date and location
                                               fontFamily: 'Baloo',
                                               fontWeight: FontWeight.bold),
                                         ),

@@ -290,7 +290,7 @@ class _AddStory extends State<AddStory> {
                               ),
                             ),
                             style: TextButton.styleFrom(
-                              primary: Colors.black,
+                              foregroundColor: Colors.black,
                               backgroundColor: Color(0xFFCCAF41),
                             ),
                           ),
@@ -332,7 +332,7 @@ class _AddStory extends State<AddStory> {
                     ),
                   ),
                   style: TextButton.styleFrom(
-                    primary: Colors.black,
+                    foregroundColor: Colors.black,
                     backgroundColor: Color(0xFFCCAF41),
                   ),
                 ),
@@ -373,7 +373,7 @@ class _AddStory extends State<AddStory> {
                     ),
                   ),
                   style: TextButton.styleFrom(
-                    primary: Colors.black,
+                    foregroundColor: Colors.black,
                     backgroundColor: Color(0xFFCCAF41),
                   ),
                 ),
@@ -408,7 +408,7 @@ class _AddStory extends State<AddStory> {
                     ),
                   ),
                   style: TextButton.styleFrom(
-                    primary: Colors.black,
+                    foregroundColor: Colors.black,
                     backgroundColor: Color(0xFFCCAF41),
                   ),
                 ),
@@ -531,7 +531,7 @@ class _AddStory extends State<AddStory> {
                       ),
                     ),
                     style: TextButton.styleFrom(
-                      primary: Colors.black,
+                      foregroundColor: Colors.black,
                       backgroundColor: Color(0xFFCCAF41),
                     ),
                   ),

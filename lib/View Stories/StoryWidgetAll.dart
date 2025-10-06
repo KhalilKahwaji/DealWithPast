@@ -193,7 +193,7 @@ class _StoryWidgetAllState extends State<StoryWidgetAll> {
                         ),
                       ),
                       style: TextButton.styleFrom(
-                        primary: Colors.black,
+                        foregroundColor: Colors.black,
                         backgroundColor: Color(0xFFCCAF41),
                       ),
                     ),
@@ -224,7 +224,7 @@ class _StoryWidgetAllState extends State<StoryWidgetAll> {
       return Scaffold(
         resizeToAvoidBottomInset: false,
         appBar: AppBar(
-          backgroundColor: Color(0xFF252422),
+          backgroundColor: Color(0xFF252422),//color of app bar
           title: Padding(
             padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
             child: Container(
@@ -535,11 +535,11 @@ class _BodyState extends State<Body> {
                           padding: EdgeInsets.all(10),
                           child: Text(
                             "$i من $length",
-                            style: TextStyle(color: Colors.white),
+                            style: TextStyle(color: Colors.black),
                           ),
                           decoration: BoxDecoration(
-                              color: Colors.black,
-                              border: Border.all(color: Colors.black),
+                              color: Colors.white,
+                              border: Border.all(color: Colors.white),
                               borderRadius:
                                   BorderRadius.all(Radius.circular(10))),
                         )),

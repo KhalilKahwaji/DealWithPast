@@ -186,7 +186,7 @@ class _BodyState extends State<Body> {
   @override
   Widget build(BuildContext context) {
     return Container(
-        color: Color(0xFF252422),
+        color: Colors.white,
         child: Center(
             child: SingleChildScrollView(
                 child: Column(
@@ -197,7 +197,7 @@ class _BodyState extends State<Body> {
               child: Text(
                 "لإضافة رواية عليك الدخول إلى حسابك الشخصي",
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white, fontSize: 40),
+                style: TextStyle(color: Colors.black, fontSize: 40),
               ),
             ),
             SizedBox(height: 100),

@@ -188,7 +188,7 @@ class _StoryWidgetImgOnlyState extends State<StoryWidgetImgOnly> {
                         ),
                       ),
                       style: TextButton.styleFrom(
-                        primary: Colors.black,
+                        foregroundColor: Colors.black,
                         backgroundColor: Color(0xFFCCAF41),
                       ),
                     ),
