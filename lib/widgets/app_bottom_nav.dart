@@ -52,17 +52,10 @@ class AppBottomNavScaffold extends StatefulWidget {
 class _AppBottomNavScaffoldState extends State<AppBottomNavScaffold> {
   static const double _dividerHeight = 28;
 
-  late int _currentIndex;
+  late int _currentIndex = 0;
 
   int _indexOf(AppTab id) => widget.tabs.indexWhere((t) => t.id == id);
   void _goTo(AppTab id) => setState(() => _currentIndex = _indexOf(id));
-
-  @override
-  void initState() {
-    super.initState();
-    _currentIndex = _indexOf(widget.initialTab);
-    if (_currentIndex < 0) _currentIndex = 0;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,35 +84,41 @@ class _AppBottomNavScaffoldState extends State<AppBottomNavScaffold> {
     // 2) Wrap in SafeArea(top:false) so iOS home-indicator padding doesn't push icons upward
     final barWithSafeArea = SafeArea(top: false, child: bar);
 
-    // 3) Overlay vertical dividers that DO NOT affect layout/taps
     final dividersOverlay = Positioned.fill(
       child: IgnorePointer(
         child: LayoutBuilder(
           builder: (context, c) {
             final count = widget.tabs.length;
             if (count <= 1) return const SizedBox.shrink();
-            final divisions = count - 1;
             final spacing = c.maxWidth / count;
-            return Row(
-              children: List.generate(divisions, (i) {
-                return SizedBox(
-                  width: spacing,
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: Container(
-                      width: 1,
-                      height: 28, // divider height
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.grey, Colors.black],
+
+            // Draw exactly (count - 1) dividers, aligned RTL so the first segment
+            // corresponds to the RIGHTMOST tab (Home). We place each divider on
+            // the *left* edge of that segment — i.e., between items.
+            return Directionality(
+              textDirection: TextDirection.rtl,
+              child: Row(
+                children: List.generate(count - 1, (i) {
+                  return SizedBox(
+                    width: spacing,
+                    child: Align(
+                      alignment:
+                          Alignment.centerLeft, // left edge of each segment
+                      child: Container(
+                        width: 1,
+                        height: 28,
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Colors.grey, Colors.black],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              }),
+                  );
+                }),
+              ),
             );
           },
         ),

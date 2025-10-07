@@ -8,7 +8,7 @@ import 'package:interactive_map/widgets/app_bottom_nav.dart';
 /// Home page with sectioned layout (light mode).
 /// Parent (mainPage / mainPageGuest) switches tabs by calling [onSelectIndex].
 class HomePage extends StatefulWidget {
-  final void Function(AppTab) goTo;
+  final void Function(AppTab) goTo; //is this the best failsafe?
 
 
   const HomePage({
