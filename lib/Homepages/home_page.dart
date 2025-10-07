@@ -3,18 +3,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:interactive_map/theme/colors.dart';
+import 'package:interactive_map/widgets/app_bottom_nav.dart';
 
 /// Home page with sectioned layout (light mode).
-/// Parent switches tabs by calling [onSelectIndex].
+/// Parent (mainPage / mainPageGuest) switches tabs by calling [onSelectIndex].
 class HomePage extends StatefulWidget {
-  final void Function(int index) onSelectIndex;
-  /// If guest/signed-in add-story tab differs, override addStoryIndex from caller.
-  final int addStoryIndex;
+  final void Function(AppTab) goTo;
+
 
   const HomePage({
     Key? key,
-    required this.onSelectIndex,
-    this.addStoryIndex = 3, //TODO: placeholder, later go to add story page
+    required this.goTo,
   }) : super(key: key);
 
   @override
@@ -22,11 +21,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // Carousel state
   final PageController _page = PageController(viewportFraction: 0.9);
   int _currentPage = 0;
-
-  // Map state (purely for the snippet)
   GoogleMapController? _mapController;
 
   @override
@@ -44,15 +40,31 @@ class _HomePageState extends State<HomePage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
-            
+            // Header
+            Row(
+              children: [
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'الصفحة الرئيسية',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: AppColors.text,
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+            ),
             const SizedBox(height: 12),
 
-            // Filters (tappable stubs for now)
+            // Filters (tappable placeholders)
             Row(
               children: [
                 Expanded(child: _pill(context, 'قرأت مؤخرًا', Icons.history, () {
                   _stub('سيتم عرض ما قرأته مؤخرًا لاحقًا');
-                  // Example route later: widget.onSelectIndex(4); // عرض الروايات
+                  // Example later: widget.onSelectIndex(widget.storiesIndex);
                 })),
                 const SizedBox(width: 12),
                 Expanded(child: _pill(context, 'إعجاب', Icons.favorite_border, () {
@@ -62,9 +74,9 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 16),
 
-            // Stories
+            // Stories (Instagram-like)
             _sectionHeader(context, 'إقرأ الروايات', trailing: 'المزيد', onTapTrailing: () {
-              widget.onSelectIndex(3); // jump to "عرض الروايات"
+              widget.goTo(AppTab.gallery);
             }),
             const SizedBox(height: 8),
             SizedBox(
@@ -76,30 +88,30 @@ class _HomePageState extends State<HomePage> {
                 itemBuilder: (context, i) => _storyChip(
                   context,
                   title: i == 2 ? 'مقطع' : 'رواية',
-                  onTap: () => widget.onSelectIndex(3),
+                  onTap: () => widget.goTo(AppTab.gallery), // <-- HERE
                 ),
               ),
             ),
             const SizedBox(height: 20),
 
-            // Map snippet (real GoogleMap, gestures disabled, tap -> Map tab)
+            // Map snippet (tap -> map tab)
             _sectionHeader(context, 'استكشف الخريطة'),
             const SizedBox(height: 8),
-            _mapSnippet(context, onTap: () => widget.onSelectIndex(4)),
+            _mapSnippet(context, onTap: () => widget.goTo(AppTab.map)), // <-- HERE
             const SizedBox(height: 20),
 
-            // Add your story
+            // Add your story (tap -> add tab)
             _sectionHeader(context, 'أضف روايتك'),
             const SizedBox(height: 8),
             _bigActionCard(
               context,
               label: 'ابدأ كتابة روايتك',
               icon: Icons.edit_outlined,
-              onTap: () => widget.onSelectIndex(widget.addStoryIndex),
+              onTap: () => widget..goTo(AppTab.addStory), // <-- HERE
             ),
             const SizedBox(height: 24),
 
-            // Swipable carousel
+            // Swipable carousel (placeholders)
             _carousel(context),
             const SizedBox(height: 24),
 
@@ -113,7 +125,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ------------ UI helpers ------------
+  // -------- helpers --------
 
   void _stub(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
@@ -226,16 +238,15 @@ class _HomePageState extends State<HomePage> {
       borderRadius: BorderRadius.circular(16),
       child: Stack(
         children: [
-          // Real map snippet: gestures disabled so it doesn't fight ListView.
           SizedBox(
             height: 160,
             child: GoogleMap(
               initialCameraPosition: const CameraPosition(
-                target: LatLng(33.8886, 35.4955), // Beirut (example)
+                target: LatLng(33.8886, 35.4955), // Beirut
                 zoom: 11.0,
               ),
               onMapCreated: (c) => _mapController = c,
-              // Disable interactions in the snippet
+              // Disable interactions inside the snippet
               zoomGesturesEnabled: false,
               scrollGesturesEnabled: false,
               rotateGesturesEnabled: false,
@@ -243,28 +254,19 @@ class _HomePageState extends State<HomePage> {
               myLocationButtonEnabled: false,
               mapToolbarEnabled: false,
               compassEnabled: false,
-              // Optional: Lite mode (Android-only optimization)
-              liteModeEnabled: true,
+              liteModeEnabled: true, // Android optimization; ignored on iOS
             ),
           ),
-          // Tap overlay to navigate to the full Map tab
           Positioned.fill(
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(onTap: onTap),
-            ),
+            child: Material(color: Colors.transparent, child: InkWell(onTap: onTap)),
           ),
-          // Subtle shadow/outline
           Positioned.fill(
             child: IgnorePointer(
               child: DecoratedBox(
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.border),
-                ),
+                decoration: BoxDecoration(border: Border.all(color: AppColors.border)),
               ),
             ),
           ),
-          // Centered label
           Positioned.fill(
             child: IgnorePointer(
               child: Center(
