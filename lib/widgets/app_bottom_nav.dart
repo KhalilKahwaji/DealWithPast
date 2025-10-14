@@ -50,7 +50,6 @@ class AppBottomNavScaffold extends StatefulWidget {
 }
 
 class _AppBottomNavScaffoldState extends State<AppBottomNavScaffold> {
-  static const double _dividerHeight = 28;
 
   late int _currentIndex = 0;
 
