@@ -49,7 +49,8 @@ class _MapPage extends State<MapPage> {
       CameraPosition(target: LatLng(33.8547, 35.9623), zoom: 8.5, bearing: 10);
   late GoogleMapController _controller;
   List<Story> stories = [];
-  List<dynamic> missions = [];
+  List<Map<String, dynamic>> missions = [];
+  bool missionsLoading = true;
   List<UserData> userData = [];
   List<Marker> allMarkers = [];
   late BitmapDescriptor pinIcon;
@@ -133,16 +134,23 @@ class _MapPage extends State<MapPage> {
       if (response != null && response['missions'] != null) {
         print('✅ Found ${response['missions'].length} missions');
         setState(() {
-          missions = response['missions'];
+          missions = List<Map<String, dynamic>>.from(response['missions']);
+          missionsLoading = false;
         });
         if (viewMode == 'missions') {
           updateMapMarkers();
         }
       } else {
         print('❌ No missions in response');
+        setState(() {
+          missionsLoading = false;
+        });
       }
     } catch (e) {
       print('Error retrieving missions: $e');
+      setState(() {
+        missionsLoading = false;
+      });
     }
   }
 
@@ -170,6 +178,8 @@ class _MapPage extends State<MapPage> {
   }
 
   void loadMissionMarkers() async {
+    if (missionsLoading || missions.isEmpty) return;
+
     for (var mission in missions) {
       allMarkers.add(Marker(
         markerId: MarkerId('mission_${mission['id']}'),
@@ -856,7 +866,7 @@ class _MapPage extends State<MapPage> {
                         SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            mainMission['title'] ?? 'مهمة',
+                            mainMission?['title'] ?? 'مهمة',
                             style: TextStyle(
                               fontFamily: 'Baloo',
                               color: Colors.white,
@@ -883,17 +893,17 @@ class _MapPage extends State<MapPage> {
                             child: Container(
                               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                               decoration: BoxDecoration(
-                                color: (mainMission['difficulty'] == 'easy')
+                                color: (mainMission?['difficulty'] == 'easy')
                                     ? Colors.green
-                                    : (mainMission['difficulty'] == 'medium')
+                                    : (mainMission?['difficulty'] == 'medium')
                                         ? Colors.orange
                                         : Colors.red,
                                 borderRadius: BorderRadius.circular(25),
                               ),
                               child: Text(
-                                (mainMission['difficulty'] == 'easy')
+                                (mainMission?['difficulty'] == 'easy')
                                     ? 'سهل'
-                                    : (mainMission['difficulty'] == 'medium')
+                                    : (mainMission?['difficulty'] == 'medium')
                                         ? 'متوسط'
                                         : 'صعب',
                                 style: TextStyle(
@@ -908,7 +918,7 @@ class _MapPage extends State<MapPage> {
                           SizedBox(height: 25),
                           // Description
                           Text(
-                            _stripHtmlTags(mainMission['description'] ?? 'لا يوجد وصف'),
+                            _stripHtmlTags(mainMission?['description'] ?? 'لا يوجد وصف'),
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 17,
@@ -932,7 +942,7 @@ class _MapPage extends State<MapPage> {
                               SizedBox(width: 15),
                               Expanded(
                                 child: Text(
-                                  mainMission['address'] ?? 'موقع المهمة',
+                                  mainMission?['address'] ?? 'موقع المهمة',
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 16,
@@ -958,7 +968,7 @@ class _MapPage extends State<MapPage> {
                               ),
                               SizedBox(width: 15),
                               Text(
-                                '${mainMission['reward_points'] ?? 0} نقطة مكافأة',
+                                '${mainMission?['reward_points'] ?? 0} نقطة مكافأة',
                                 style: TextStyle(
                                   color: Color(0xFFFFDE73),
                                   fontSize: 18,
@@ -996,7 +1006,7 @@ class _MapPage extends State<MapPage> {
                                 MaterialPageRoute(
                                   builder: (context) => AddStory(
                                     token,
-                                    missionId: mainMission['id'],
+                                    missionId: mainMission?['id'],
                                   ),
                                 ),
                               );
