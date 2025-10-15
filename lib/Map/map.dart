@@ -29,6 +29,7 @@ import '../Repos/StoryRepo.dart';
 import '../Repos/UserClass.dart';
 import '../Repos/UserInfo.dart';
 import '../Repos/UserRepo.dart';
+import '../Repos/MissionRepo.dart';
 import '../View Stories/StoryWidgetImgOnly.dart';
 import "package:collection/collection.dart";
 import 'package:path_provider/path_provider.dart';
@@ -42,10 +43,12 @@ class MapPage extends StatefulWidget {
 
 class _MapPage extends State<MapPage> {
   StoryRepo storyrepo = StoryRepo();
+  MissionRepo missionRepo = MissionRepo();
   static const _initialCameraPosition =
       CameraPosition(target: LatLng(33.8547, 35.9623), zoom: 8.5, bearing: 10);
   late GoogleMapController _controller;
   List<Story> stories = [];
+  List<dynamic> missions = [];
   List<UserData> userData = [];
   List<Marker> allMarkers = [];
   late BitmapDescriptor pinIcon;
@@ -53,9 +56,12 @@ class _MapPage extends State<MapPage> {
   bool Loaded = false;
   bool showPage = false;
   bool showPageGrouped = false;
+  bool showMissionPage = false;
   bool nearMe = false;
+  String viewMode = 'stories'; // 'stories' or 'missions'
   dynamic location;
   late Story mainStory;
+  dynamic mainMission;
   late dynamic placemarks;
   late dynamic image;
   dynamic currLng = 0;
@@ -102,8 +108,88 @@ class _MapPage extends State<MapPage> {
       for (var i = 0; i < newMap.length; i++) {
         groupedStories.add(newMap.values.elementAt(i));
       }
-      mapCreated(_controller);
+      if (viewMode == 'stories') {
+        updateMapMarkers();
+      }
     } catch (e) {}
+  }
+
+  retrieveMissions() async {
+    try {
+      // Use hardcoded Lebanon coordinates for testing
+      double testLat = 33.8938;
+      double testLng = 35.5018;
+
+      print('📍 Using test location: $testLat, $testLng');
+      print('🔍 Fetching missions...');
+      var response = await missionRepo.getNearbyMissions(
+        testLat,
+        testLng,
+        radius: 100, // 100km radius
+        token: token,
+      );
+      print('📦 Response: $response');
+      if (response != null && response['missions'] != null) {
+        print('✅ Found ${response['missions'].length} missions');
+        setState(() {
+          missions = response['missions'];
+        });
+        if (viewMode == 'missions') {
+          updateMapMarkers();
+        }
+      } else {
+        print('❌ No missions in response');
+      }
+    } catch (e) {
+      print('Error retrieving missions: $e');
+    }
+  }
+
+  void switchViewMode(String mode) {
+    setState(() {
+      viewMode = mode;
+      showPage = false;
+      showPageGrouped = false;
+      showMissionPage = false;
+      updateMapMarkers();
+    });
+  }
+
+  void updateMapMarkers() {
+    setState(() {
+      allMarkers.clear();
+    });
+
+    if (viewMode == 'stories') {
+      mapCreated(_controller);
+    } else if (viewMode == 'missions') {
+      loadMissionMarkers();
+    }
+  }
+
+  void loadMissionMarkers() async {
+    for (var mission in missions) {
+      allMarkers.add(Marker(
+        markerId: MarkerId('mission_${mission['id']}'),
+        draggable: false,
+        consumeTapEvents: true,
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+        position: LatLng(mission['latitude'], mission['longitude']),
+        infoWindow: InfoWindow(
+          title: mission['title'],
+          snippet: mission['excerpt'],
+        ),
+        onTap: () {
+          setState(() {
+            showPageGrouped = false;
+            showPage = false;
+            showMissionPage = true;
+            mainMission = mission;
+          });
+        },
+      ));
+    }
+    if (mounted) setState(() {});
   }
 
   Future<Uint8List> getBytesFromCanvas(
@@ -283,6 +369,7 @@ class _MapPage extends State<MapPage> {
     super.initState();
 
     retrieveStories();
+    retrieveMissions();
   }
 
   @override
@@ -387,6 +474,25 @@ class _MapPage extends State<MapPage> {
     return res;
   }
 
+  // Strip HTML tags and WordPress block comments from text
+  String _stripHtmlTags(String htmlText) {
+    // Remove WordPress block comments like <!-- wp:paragraph -->
+    String text = htmlText.replaceAll(RegExp(r'<!--.*?-->', dotAll: true), '');
+    // Remove HTML tags
+    text = text.replaceAll(RegExp(r'<[^>]*>'), '');
+    // Remove WordPress Gutenberg blocks like [gallery ids="..."]
+    text = text.replaceAll(RegExp(r'\[.*?\]'), '');
+    // Decode common HTML entities
+    text = text.replaceAll('&nbsp;', ' ');
+    text = text.replaceAll('&amp;', '&');
+    text = text.replaceAll('&lt;', '<');
+    text = text.replaceAll('&gt;', '>');
+    text = text.replaceAll('&quot;', '"');
+    // Remove extra whitespace
+    text = text.replaceAll(RegExp(r'\s+'), ' ').trim();
+    return text;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -410,6 +516,80 @@ class _MapPage extends State<MapPage> {
           markers: Set.from(allMarkers),
 
           onMapCreated: mapCreated,
+        ),
+        // Toggle buttons for Stories/Missions
+        Positioned(
+          top: 50,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Color(0xFF252422).withOpacity(0.9),
+                borderRadius: BorderRadius.circular(25),
+                border: Border.all(color: Color(0xFFFFDE73), width: 2),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Stories Button
+                  GestureDetector(
+                    onTap: () => switchViewMode('stories'),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: viewMode == 'stories'
+                            ? Color(0xFFFFDE73)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(23),
+                          bottomLeft: Radius.circular(23),
+                        ),
+                      ),
+                      child: Text(
+                        'الروايات',
+                        style: TextStyle(
+                          color: viewMode == 'stories'
+                              ? Colors.black
+                              : Color(0xFFFFDE73),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Baloo',
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Missions Button
+                  GestureDetector(
+                    onTap: () => switchViewMode('missions'),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: viewMode == 'missions'
+                            ? Color(0xFF4CAF50)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.only(
+                          topRight: Radius.circular(23),
+                          bottomRight: Radius.circular(23),
+                        ),
+                      ),
+                      child: Text(
+                        'المهمات',
+                        style: TextStyle(
+                          color: viewMode == 'missions'
+                              ? Colors.white
+                              : Color(0xFF4CAF50),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Baloo',
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
         showPage
             ? Container(
@@ -631,6 +811,204 @@ class _MapPage extends State<MapPage> {
                                 }))))
               ]))
             : Container(),
+        // Mission Discovery Card - WITH NULL-SAFETY CHECK
+        if (showMissionPage && mainMission != null)
+          AnimatedPositioned(
+            duration: Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 400,
+              decoration: BoxDecoration(
+                color: Color(0xFF252422),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(25),
+                  topRight: Radius.circular(25),
+                ),
+              ),
+              child: Column(
+                children: [
+                  // Header with close button
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                    decoration: BoxDecoration(
+                      color: Color(0xFF4CAF50),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(25),
+                        topRight: Radius.circular(25),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            setState(() {
+                              showMissionPage = false;
+                            });
+                          },
+                          icon: Icon(Icons.close, color: Colors.white, size: 28),
+                        ),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            mainMission['title'] ?? 'مهمة',
+                            style: TextStyle(
+                              fontFamily: 'Baloo',
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Content
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.all(25),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Difficulty Badge
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Container(
+                              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: (mainMission['difficulty'] == 'easy')
+                                    ? Colors.green
+                                    : (mainMission['difficulty'] == 'medium')
+                                        ? Colors.orange
+                                        : Colors.red,
+                                borderRadius: BorderRadius.circular(25),
+                              ),
+                              child: Text(
+                                (mainMission['difficulty'] == 'easy')
+                                    ? 'سهل'
+                                    : (mainMission['difficulty'] == 'medium')
+                                        ? 'متوسط'
+                                        : 'صعب',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontFamily: 'Baloo',
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 25),
+                          // Description
+                          Text(
+                            _stripHtmlTags(mainMission['description'] ?? 'لا يوجد وصف'),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 17,
+                              fontFamily: 'Baloo',
+                              height: 1.8,
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                          SizedBox(height: 25),
+                          // Location
+                          Row(
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Color(0xFF4CAF50).withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(Icons.location_pin, color: Color(0xFF4CAF50), size: 26),
+                              ),
+                              SizedBox(width: 15),
+                              Expanded(
+                                child: Text(
+                                  mainMission['address'] ?? 'موقع المهمة',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontFamily: 'Baloo',
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 20),
+                          // Reward Points
+                          Row(
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Color(0xFFFFDE73).withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(Icons.star, color: Color(0xFFFFDE73), size: 26),
+                              ),
+                              SizedBox(width: 15),
+                              Text(
+                                '${mainMission['reward_points'] ?? 0} نقطة مكافأة',
+                                style: TextStyle(
+                                  color: Color(0xFFFFDE73),
+                                  fontSize: 18,
+                                  fontFamily: 'Baloo',
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Action Buttons at bottom
+                  Container(
+                    padding: EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xFF2F69BC),
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                            ),
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('قريباً: المساهمة في المهمة'),
+                                  backgroundColor: Color(0xFF2F69BC),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              'ساهم في المهمة',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontFamily: 'Baloo',
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
       ],
     ));
   }

@@ -133,10 +133,24 @@ class DWP_API_Endpoints {
                     'default' => 'visit',
                     'enum' => array('visit', 'interview', 'photograph', 'research', 'memorial'),
                 ),
+                'category' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'default' => 'social',
+                    'enum' => array('social', 'personal'),
+                    'description' => 'Mission category: social (community quest) or personal (tribute)',
+                ),
+                'privacy' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'default' => 'public',
+                    'enum' => array('public', 'private'),
+                    'description' => 'Privacy setting for personal missions',
+                ),
                 'reward_points' => array(
                     'required' => false,
                     'type' => 'integer',
-                    'default' => 10,
+                    'description' => 'Reward points (auto-calculated if not provided)',
                 ),
                 'story_id' => array(
                     'required' => false,
@@ -378,12 +392,18 @@ class DWP_API_Endpoints {
             'address' => get_field('address', $mission_id),
             'difficulty' => get_field('difficulty', $mission_id),
             'mission_type' => get_field('mission_type', $mission_id),
+            'category' => get_field('category', $mission_id) ?: 'social',
+            'privacy' => get_field('privacy', $mission_id) ?: 'public',
             'completion_count' => intval(get_field('completion_count', $mission_id)),
             'reward_points' => intval(get_field('reward_points', $mission_id)),
+            'goal_count' => intval(get_field('goal_count', $mission_id)),
+            'follower_goal' => intval(get_field('follower_goal', $mission_id)),
+            'duration_days' => intval(get_field('duration_days', $mission_id)),
             'is_active' => (bool) get_field('is_active', $mission_id),
             'thumbnail' => get_the_post_thumbnail_url($mission_id, 'medium'),
             'story_id' => get_field('story_id', $mission_id),
             'created_at' => $post_data->post_date,
+            'status' => $post_data->post_status,
         );
 
         // Add distance if available (from nearby query)
@@ -408,14 +428,27 @@ class DWP_API_Endpoints {
         $address = $request->get_param('address');
         $difficulty = $request->get_param('difficulty') ?: 'easy';
         $mission_type = $request->get_param('mission_type') ?: 'visit';
-        $reward_points = intval($request->get_param('reward_points')) ?: 10;
+        $category = $request->get_param('category') ?: 'social';
+        $privacy = $request->get_param('privacy') ?: 'public';
         $story_id = $request->get_param('story_id');
+
+        // AUTO-CALCULATE system-controlled fields based on difficulty and category
+        $system_rules = $this->calculate_mission_rules($difficulty, $category);
+
+        // Allow manual override of reward_points only if provided
+        $reward_points = $request->get_param('reward_points');
+        if (!$reward_points) {
+            $reward_points = $system_rules['reward_points'];
+        }
+
+        // ALL missions need approval for safety - no auto-publish
+        $post_status = 'pending';
 
         // Create mission post
         $post_data = array(
             'post_title' => $title,
             'post_content' => $description,
-            'post_status' => 'publish',
+            'post_status' => $post_status,
             'post_author' => $user_id,
             'post_type' => 'mission',
         );
@@ -432,7 +465,12 @@ class DWP_API_Endpoints {
         update_field('address', $address, $post_id);
         update_field('difficulty', $difficulty, $post_id);
         update_field('mission_type', $mission_type, $post_id);
+        update_field('category', $category, $post_id);
+        update_field('privacy', $privacy, $post_id);
         update_field('reward_points', $reward_points, $post_id);
+        update_field('goal_count', $system_rules['goal_count'], $post_id);
+        update_field('follower_goal', $system_rules['follower_goal'], $post_id);
+        update_field('duration_days', $system_rules['duration_days'], $post_id);
         update_field('completion_count', 0, $post_id);
         update_field('is_active', true, $post_id);
 
@@ -445,9 +483,91 @@ class DWP_API_Endpoints {
 
         return rest_ensure_response(array(
             'success' => true,
-            'message' => 'Mission created successfully',
+            'message' => 'Mission created and submitted for approval',
+            'status' => 'pending',
             'mission' => $mission,
         ));
+    }
+
+    /**
+     * Calculate mission system rules based on difficulty and category
+     */
+    private function calculate_mission_rules($difficulty, $category) {
+        $rules = array();
+
+        if ($category === 'social') {
+            // Social missions: community quests with goals
+            switch ($difficulty) {
+                case 'easy':
+                    $rules = array(
+                        'goal_count' => 5,
+                        'follower_goal' => 3,
+                        'duration_days' => 30,
+                        'reward_points' => 50,
+                    );
+                    break;
+                case 'medium':
+                    $rules = array(
+                        'goal_count' => 15,
+                        'follower_goal' => 10,
+                        'duration_days' => 60,
+                        'reward_points' => 150,
+                    );
+                    break;
+                case 'hard':
+                    $rules = array(
+                        'goal_count' => 30,
+                        'follower_goal' => 25,
+                        'duration_days' => 90,
+                        'reward_points' => 300,
+                    );
+                    break;
+                default:
+                    $rules = array(
+                        'goal_count' => 5,
+                        'follower_goal' => 3,
+                        'duration_days' => 30,
+                        'reward_points' => 50,
+                    );
+            }
+        } else {
+            // Personal missions: tributes with no follower goals
+            switch ($difficulty) {
+                case 'easy':
+                    $rules = array(
+                        'goal_count' => 1,
+                        'follower_goal' => 0,
+                        'duration_days' => 0, // No expiry
+                        'reward_points' => 25,
+                    );
+                    break;
+                case 'medium':
+                    $rules = array(
+                        'goal_count' => 1,
+                        'follower_goal' => 0,
+                        'duration_days' => 0,
+                        'reward_points' => 50,
+                    );
+                    break;
+                case 'hard':
+                    $rules = array(
+                        'goal_count' => 1,
+                        'follower_goal' => 0,
+                        'duration_days' => 0,
+                        'reward_points' => 100,
+                    );
+                    break;
+                default:
+                    $rules = array(
+                        'goal_count' => 1,
+                        'follower_goal' => 0,
+                        'duration_days' => 0,
+                        'reward_points' => 25,
+                    );
+            }
+        }
+
+        return $rules;
     }
 
     /**
