@@ -72,6 +72,7 @@ class DWP_Gamification {
         require_once DWP_GAMIFICATION_PATH . 'includes/class-api-endpoints.php';
         require_once DWP_GAMIFICATION_PATH . 'includes/class-achievement-manager.php';
         require_once DWP_GAMIFICATION_PATH . 'includes/class-notification-handler.php';
+        require_once DWP_GAMIFICATION_PATH . 'includes/class-admin-ui.php';
     }
 
     /**
@@ -89,6 +90,11 @@ class DWP_Gamification {
         new DWP_API_Endpoints();
         new DWP_Achievement_Manager();
         new DWP_Notification_Handler();
+
+        // Initialize admin UI (only in admin)
+        if (is_admin()) {
+            new DWP_Admin_UI();
+        }
 
         // Load text domain
         load_plugin_textdomain('dwp-gamification', false, dirname(DWP_GAMIFICATION_BASENAME) . '/languages');
