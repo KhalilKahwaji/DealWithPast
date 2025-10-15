@@ -201,6 +201,21 @@ class DWP_API_Endpoints {
                 ),
             ),
         ));
+
+        // Get shareable content for mission
+        register_rest_route($this->namespace, '/missions/(?P<id>\d+)/share', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_share_content'),
+            'permission_callback' => '__return_true', // Public endpoint
+            'args' => array(
+                'platform' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'enum' => array('whatsapp', 'facebook', 'twitter', 'generic'),
+                    'default' => 'generic',
+                ),
+            ),
+        ));
     }
 
     /**
@@ -788,5 +803,95 @@ class DWP_API_Endpoints {
                 'users' => $reactions['cry'],
             ),
         );
+    }
+
+    /**
+     * Get shareable content for a mission
+     */
+    public function get_share_content($request) {
+        $mission_id = intval($request->get_param('id'));
+        $platform = $request->get_param('platform');
+
+        $post = get_post($mission_id);
+        if (!$post || $post->post_type !== 'mission' || $post->post_status !== 'publish') {
+            return new WP_Error('invalid_mission', 'Mission not found', array('status' => 404));
+        }
+
+        $mission = $this->format_mission_data($mission_id, $post);
+
+        // Generate mission URL
+        $mission_url = home_url('/mission/' . $mission_id);
+
+        // Clean description (remove HTML tags)
+        $clean_description = wp_strip_all_tags($mission['description']);
+        $short_description = wp_trim_words($clean_description, 20);
+
+        // Base share data
+        $share_data = array(
+            'title' => $mission['title'],
+            'description' => $short_description,
+            'url' => $mission_url,
+            'category' => $mission['category'],
+        );
+
+        // Platform-specific formatting
+        switch ($platform) {
+            case 'whatsapp':
+                $emoji = ($mission['category'] === 'personal') ? '🙏' : '🎯';
+                $message = "{$emoji} {$mission['title']}\n\n{$short_description}\n\n📍 {$mission['address']}\n\n🌟 {$mission['reward_points']} points\n\nجزء من قصص الحرب الأهلية اللبنانية 🇱🇧\n\n{$mission_url}";
+
+                $share_data['whatsapp_url'] = 'https://wa.me/?text=' . rawurlencode($message);
+                $share_data['message'] = $message;
+                break;
+
+            case 'facebook':
+                $share_data['facebook_url'] = 'https://www.facebook.com/sharer/sharer.php?u=' . rawurlencode($mission_url);
+                $share_data['quote'] = $mission['title'] . ' - ' . $short_description;
+                break;
+
+            case 'twitter':
+                $hashtags = 'DealWithPast,Lebanon';
+                $tweet = "{$mission['title']}\n{$short_description}\n\n{$mission_url}";
+
+                // Twitter has 280 char limit
+                if (strlen($tweet) > 250) {
+                    $tweet = substr($tweet, 0, 247) . '...';
+                }
+
+                $share_data['twitter_url'] = 'https://twitter.com/intent/tweet?text=' . rawurlencode($tweet) . '&hashtags=' . $hashtags;
+                $share_data['tweet'] = $tweet;
+                break;
+
+            case 'generic':
+            default:
+                $emoji = ($mission['category'] === 'personal') ? '🙏' : '🎯';
+                $share_data['text'] = "{$emoji} {$mission['title']}\n\n{$short_description}\n\n📍 {$mission['address']}\n🌟 {$mission['reward_points']} points\n\nDealWithPast - Lebanese Civil War Stories\n{$mission_url}";
+                break;
+        }
+
+        // Add meta tags for social sharing
+        $share_data['meta'] = array(
+            'og:title' => $mission['title'],
+            'og:description' => $short_description,
+            'og:url' => $mission_url,
+            'og:type' => 'article',
+            'og:site_name' => 'DealWithPast',
+            'twitter:card' => 'summary_large_image',
+            'twitter:title' => $mission['title'],
+            'twitter:description' => $short_description,
+        );
+
+        // Add image if available
+        if ($mission['thumbnail']) {
+            $share_data['meta']['og:image'] = $mission['thumbnail'];
+            $share_data['meta']['twitter:image'] = $mission['thumbnail'];
+        }
+
+        return rest_ensure_response(array(
+            'success' => true,
+            'mission_id' => $mission_id,
+            'platform' => $platform,
+            'share' => $share_data,
+        ));
     }
 }
