@@ -61,7 +61,7 @@ class _MapPage extends State<MapPage> {
   String viewMode = 'stories'; // 'stories' or 'missions'
   dynamic location;
   late Story mainStory;
-  dynamic mainMission;
+  Map<String, dynamic>? mainMission; // Changed to nullable Map for better safety
   late dynamic placemarks;
   late dynamic image;
   dynamic currLng = 0;
@@ -151,6 +151,7 @@ class _MapPage extends State<MapPage> {
       showPage = false;
       showPageGrouped = false;
       showMissionPage = false;
+      mainMission = null; // Clear mission when switching modes
       updateMapMarkers();
     });
   }
@@ -180,11 +181,12 @@ class _MapPage extends State<MapPage> {
           snippet: mission['excerpt'],
         ),
         onTap: () {
+          print('🎯 Mission tapped: ${mission['title']}');
           setState(() {
             showPageGrouped = false;
             showPage = false;
             showMissionPage = true;
-            mainMission = mission;
+            mainMission = Map<String, dynamic>.from(mission); // Ensure proper type
           });
         },
       ));
