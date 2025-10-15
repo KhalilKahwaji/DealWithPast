@@ -31,6 +31,7 @@ import '../Repos/UserInfo.dart';
 import '../Repos/UserRepo.dart';
 import '../Repos/MissionRepo.dart';
 import '../View Stories/StoryWidgetImgOnly.dart';
+import '../My Stories/addStory.dart';
 import "package:collection/collection.dart";
 import 'package:path_provider/path_provider.dart';
 
@@ -986,10 +987,17 @@ class _MapPage extends State<MapPage> {
                               ),
                             ),
                             onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('قريباً: المساهمة في المهمة'),
-                                  backgroundColor: Color(0xFF2F69BC),
+                              // Close mission card and navigate to AddStory with mission ID
+                              setState(() {
+                                showMissionPage = false;
+                              });
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => AddStory(
+                                    token,
+                                    missionId: mainMission['id'],
+                                  ),
                                 ),
                               );
                             },
