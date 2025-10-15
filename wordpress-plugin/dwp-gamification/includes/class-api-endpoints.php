@@ -158,6 +158,49 @@ class DWP_API_Endpoints {
                 ),
             ),
         ));
+
+        // Add reaction to personal mission
+        register_rest_route($this->namespace, '/missions/react', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'add_mission_reaction'),
+            'permission_callback' => array($this, 'check_auth'),
+            'args' => array(
+                'mission_id' => array(
+                    'required' => true,
+                    'type' => 'integer',
+                ),
+                'reaction' => array(
+                    'required' => true,
+                    'type' => 'string',
+                    'enum' => array('pray', 'heart', 'smile', 'cry'),
+                    'description' => 'Reaction type: pray (🙏), heart (❤️), smile (😊), cry (😢)',
+                ),
+            ),
+        ));
+
+        // Get mission reactions
+        register_rest_route($this->namespace, '/missions/(?P<id>\d+)/reactions', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_mission_reactions'),
+            'permission_callback' => '__return_true', // Public endpoint
+        ));
+
+        // Remove reaction from mission
+        register_rest_route($this->namespace, '/missions/unreact', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'remove_mission_reaction'),
+            'permission_callback' => array($this, 'check_auth'),
+            'args' => array(
+                'mission_id' => array(
+                    'required' => true,
+                    'type' => 'integer',
+                ),
+                'reaction' => array(
+                    'required' => true,
+                    'type' => 'string',
+                ),
+            ),
+        ));
     }
 
     /**
@@ -382,6 +425,8 @@ class DWP_API_Endpoints {
             $post_data = get_post($mission_id);
         }
 
+        $category = get_field('category', $mission_id) ?: 'social';
+
         $mission = array(
             'id' => $mission_id,
             'title' => $post_data->post_title,
@@ -392,7 +437,7 @@ class DWP_API_Endpoints {
             'address' => get_field('address', $mission_id),
             'difficulty' => get_field('difficulty', $mission_id),
             'mission_type' => get_field('mission_type', $mission_id),
-            'category' => get_field('category', $mission_id) ?: 'social',
+            'category' => $category,
             'privacy' => get_field('privacy', $mission_id) ?: 'public',
             'completion_count' => intval(get_field('completion_count', $mission_id)),
             'reward_points' => intval(get_field('reward_points', $mission_id)),
@@ -405,6 +450,20 @@ class DWP_API_Endpoints {
             'created_at' => $post_data->post_date,
             'status' => $post_data->post_status,
         );
+
+        // Add reactions for personal missions
+        if ($category === 'personal') {
+            $reactions = get_field('reactions', $mission_id);
+            if (!$reactions || !is_array($reactions)) {
+                $reactions = array(
+                    'pray' => array(),
+                    'heart' => array(),
+                    'smile' => array(),
+                    'cry' => array(),
+                );
+            }
+            $mission['reactions'] = $this->format_reactions($reactions);
+        }
 
         // Add distance if available (from nearby query)
         if (isset($post_data->distance)) {
@@ -581,5 +640,153 @@ class DWP_API_Endpoints {
             "SELECT * FROM $table WHERE user_id = %d AND mission_id = %d",
             $user_id, $mission_id
         ));
+    }
+
+    /**
+     * Add emoji reaction to a personal mission
+     */
+    public function add_mission_reaction($request) {
+        $mission_id = intval($request->get_param('mission_id'));
+        $reaction = $request->get_param('reaction');
+        $user_id = get_current_user_id();
+
+        // Verify mission exists and is personal
+        $post = get_post($mission_id);
+        if (!$post || $post->post_type !== 'mission') {
+            return new WP_Error('invalid_mission', 'Invalid mission ID', array('status' => 400));
+        }
+
+        $category = get_field('category', $mission_id);
+        if ($category !== 'personal') {
+            return new WP_Error('invalid_category', 'Reactions are only available for personal missions', array('status' => 400));
+        }
+
+        // Get existing reactions
+        $reactions = get_field('reactions', $mission_id);
+        if (!$reactions || !is_array($reactions)) {
+            $reactions = array(
+                'pray' => array(),
+                'heart' => array(),
+                'smile' => array(),
+                'cry' => array(),
+            );
+        }
+
+        // Check if user already reacted with this emoji
+        if (in_array($user_id, $reactions[$reaction])) {
+            return new WP_Error('already_reacted', 'You already reacted with this emoji', array('status' => 400));
+        }
+
+        // Remove user from other reactions (one reaction per user)
+        foreach ($reactions as $type => $users) {
+            if (($key = array_search($user_id, $users)) !== false) {
+                unset($reactions[$type][$key]);
+                $reactions[$type] = array_values($reactions[$type]); // Re-index
+            }
+        }
+
+        // Add new reaction
+        $reactions[$reaction][] = $user_id;
+
+        // Save updated reactions
+        update_field('reactions', $reactions, $mission_id);
+
+        return rest_ensure_response(array(
+            'success' => true,
+            'message' => 'Reaction added successfully',
+            'reactions' => $this->format_reactions($reactions),
+        ));
+    }
+
+    /**
+     * Get all reactions for a mission
+     */
+    public function get_mission_reactions($request) {
+        $mission_id = intval($request->get_param('id'));
+
+        $post = get_post($mission_id);
+        if (!$post || $post->post_type !== 'mission') {
+            return new WP_Error('invalid_mission', 'Invalid mission ID', array('status' => 400));
+        }
+
+        $reactions = get_field('reactions', $mission_id);
+        if (!$reactions || !is_array($reactions)) {
+            $reactions = array(
+                'pray' => array(),
+                'heart' => array(),
+                'smile' => array(),
+                'cry' => array(),
+            );
+        }
+
+        return rest_ensure_response(array(
+            'success' => true,
+            'mission_id' => $mission_id,
+            'reactions' => $this->format_reactions($reactions),
+        ));
+    }
+
+    /**
+     * Remove reaction from mission
+     */
+    public function remove_mission_reaction($request) {
+        $mission_id = intval($request->get_param('mission_id'));
+        $reaction = $request->get_param('reaction');
+        $user_id = get_current_user_id();
+
+        $post = get_post($mission_id);
+        if (!$post || $post->post_type !== 'mission') {
+            return new WP_Error('invalid_mission', 'Invalid mission ID', array('status' => 400));
+        }
+
+        $reactions = get_field('reactions', $mission_id);
+        if (!$reactions || !is_array($reactions)) {
+            return new WP_Error('no_reactions', 'No reactions found', array('status' => 404));
+        }
+
+        // Remove user from reaction
+        if (isset($reactions[$reaction])) {
+            if (($key = array_search($user_id, $reactions[$reaction])) !== false) {
+                unset($reactions[$reaction][$key]);
+                $reactions[$reaction] = array_values($reactions[$reaction]); // Re-index
+                update_field('reactions', $reactions, $mission_id);
+
+                return rest_ensure_response(array(
+                    'success' => true,
+                    'message' => 'Reaction removed successfully',
+                    'reactions' => $this->format_reactions($reactions),
+                ));
+            }
+        }
+
+        return new WP_Error('not_found', 'Reaction not found', array('status' => 404));
+    }
+
+    /**
+     * Format reactions for API response
+     */
+    private function format_reactions($reactions) {
+        return array(
+            'pray' => array(
+                'emoji' => '🙏',
+                'count' => count($reactions['pray']),
+                'users' => $reactions['pray'],
+            ),
+            'heart' => array(
+                'emoji' => '❤️',
+                'count' => count($reactions['heart']),
+                'users' => $reactions['heart'],
+            ),
+            'smile' => array(
+                'emoji' => '😊',
+                'count' => count($reactions['smile']),
+                'users' => $reactions['smile'],
+            ),
+            'cry' => array(
+                'emoji' => '😢',
+                'count' => count($reactions['cry']),
+                'users' => $reactions['cry'],
+            ),
+        );
     }
 }
