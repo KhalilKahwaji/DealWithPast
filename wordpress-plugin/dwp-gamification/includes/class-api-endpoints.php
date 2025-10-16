@@ -44,6 +44,27 @@ class DWP_API_Endpoints {
                     'type' => 'number',
                     'description' => 'Search radius in kilometers',
                 ),
+                'neighborhood' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'description' => 'Filter by neighborhood tag (e.g., "Hamra", "Dahiye")',
+                ),
+                'decade' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'description' => 'Filter by decade tag (e.g., "1970s", "1980s")',
+                ),
+                'theme' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'description' => 'Filter by theme tag (e.g., "war", "daily life")',
+                ),
+                'category' => array(
+                    'required' => false,
+                    'type' => 'string',
+                    'enum' => array('social', 'personal'),
+                    'description' => 'Filter by mission category',
+                ),
             ),
         ));
 
@@ -233,6 +254,12 @@ class DWP_API_Endpoints {
         $lng = floatval($request->get_param('lng'));
         $radius = floatval($request->get_param('radius'));
 
+        // Get optional filter parameters
+        $neighborhood_filter = $request->get_param('neighborhood');
+        $decade_filter = $request->get_param('decade');
+        $theme_filter = $request->get_param('theme');
+        $category_filter = $request->get_param('category');
+
         global $wpdb;
         $posts_table = $wpdb->prefix . 'posts';
         $postmeta_table = $wpdb->prefix . 'postmeta';
@@ -260,16 +287,53 @@ class DWP_API_Endpoints {
 
         $results = $wpdb->get_results($sql);
 
+        // Apply tag filters (post-query because tags are comma-separated strings in ACF)
         $missions = array();
         foreach ($results as $row) {
+            // Apply filters if provided
+            if ($category_filter) {
+                $category = get_field('category', $row->ID);
+                if ($category !== $category_filter) {
+                    continue;
+                }
+            }
+
+            if ($neighborhood_filter) {
+                $neighborhood_tags = get_field('neighborhood_tags', $row->ID);
+                if (empty($neighborhood_tags) || stripos($neighborhood_tags, $neighborhood_filter) === false) {
+                    continue;
+                }
+            }
+
+            if ($decade_filter) {
+                $decade_tags = get_field('decade_tags', $row->ID);
+                if (empty($decade_tags) || stripos($decade_tags, $decade_filter) === false) {
+                    continue;
+                }
+            }
+
+            if ($theme_filter) {
+                $theme_tags = get_field('theme_tags', $row->ID);
+                if (empty($theme_tags) || stripos($theme_tags, $theme_filter) === false) {
+                    continue;
+                }
+            }
+
             $missions[] = $this->format_mission_data($row->ID, $row);
         }
+
+        $filters_applied = array();
+        if ($category_filter) $filters_applied['category'] = $category_filter;
+        if ($neighborhood_filter) $filters_applied['neighborhood'] = $neighborhood_filter;
+        if ($decade_filter) $filters_applied['decade'] = $decade_filter;
+        if ($theme_filter) $filters_applied['theme'] = $theme_filter;
 
         return rest_ensure_response(array(
             'success' => true,
             'count' => count($missions),
             'user_location' => array('lat' => $lat, 'lng' => $lng),
             'radius_km' => $radius,
+            'filters' => $filters_applied,
             'missions' => $missions,
         ));
     }
@@ -442,6 +506,29 @@ class DWP_API_Endpoints {
 
         $category = get_field('category', $mission_id) ?: 'social';
 
+        // Parse tags into arrays
+        $neighborhood_tags_str = get_field('neighborhood_tags', $mission_id);
+        $decade_tags_str = get_field('decade_tags', $mission_id);
+        $theme_tags_str = get_field('theme_tags', $mission_id);
+
+        // Auto-calculate reward points based on difficulty and goal_count
+        $difficulty = get_field('difficulty', $mission_id) ?: 'easy';
+        $goal_count = intval(get_field('goal_count', $mission_id));
+
+        $base_points = array(
+            'easy' => 5,
+            'medium' => 10,
+            'hard' => 15,
+        );
+
+        $calculated_points = ($base_points[$difficulty] ?? 10) * max(1, $goal_count / 10);
+        $reward_points = round($calculated_points);
+
+        // Get author info
+        $author_id = $post_data->post_author;
+        $author_name = get_the_author_meta('display_name', $author_id);
+        $author_avatar = get_avatar_url($author_id, array('size' => 96));
+
         $mission = array(
             'id' => $mission_id,
             'title' => $post_data->post_title,
@@ -455,7 +542,7 @@ class DWP_API_Endpoints {
             'category' => $category,
             'privacy' => get_field('privacy', $mission_id) ?: 'public',
             'completion_count' => intval(get_field('completion_count', $mission_id)),
-            'reward_points' => intval(get_field('reward_points', $mission_id)),
+            'reward_points' => $reward_points, // Auto-calculated
             'goal_count' => intval(get_field('goal_count', $mission_id)),
             'follower_goal' => intval(get_field('follower_goal', $mission_id)),
             'duration_days' => intval(get_field('duration_days', $mission_id)),
@@ -464,6 +551,14 @@ class DWP_API_Endpoints {
             'story_id' => get_field('story_id', $mission_id),
             'created_at' => $post_data->post_date,
             'status' => $post_data->post_status,
+            // Creator info
+            'creator_id' => intval($author_id),
+            'creator_name' => $author_name,
+            'creator_avatar' => $author_avatar,
+            // Tag fields (parsed as arrays for easier filtering in app)
+            'neighborhood_tags' => $neighborhood_tags_str ? array_map('trim', explode(',', $neighborhood_tags_str)) : array(),
+            'decade_tags' => $decade_tags_str ? array_map('trim', explode(',', $decade_tags_str)) : array(),
+            'theme_tags' => $theme_tags_str ? array_map('trim', explode(',', $theme_tags_str)) : array(),
         );
 
         // Add reactions for personal missions

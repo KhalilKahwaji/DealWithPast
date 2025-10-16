@@ -198,17 +198,72 @@ class DWP_Mission_CPT {
                     'default_value' => 1,
                     'ui' => 1,
                 ),
-                // Reward Points (optional)
+                // Reward Points (auto-calculated - readonly)
                 array(
                     'key' => 'field_mission_reward_points',
-                    'label' => 'Reward Points',
+                    'label' => 'Reward Points (Auto-Calculated)',
                     'name' => 'reward_points',
                     'type' => 'number',
-                    'instructions' => 'Points awarded for completing this mission',
+                    'instructions' => 'Points awarded for completing this mission (automatically calculated based on difficulty × goal_count)',
                     'default_value' => 10,
-                    'min' => 0,
+                    'readonly' => 1,
+                    'disabled' => 1,
+                ),
+                // Goal Count (for progress tracking)
+                array(
+                    'key' => 'field_mission_goal_count',
+                    'label' => 'Goal Count',
+                    'name' => 'goal_count',
+                    'type' => 'number',
+                    'instructions' => 'How many story contributions are needed to complete this mission?',
+                    'default_value' => 10,
+                    'min' => 1,
                     'max' => 100,
-                    'step' => 5,
+                    'step' => 1,
+                ),
+                // Category (social vs personal)
+                array(
+                    'key' => 'field_mission_category',
+                    'label' => 'Mission Category',
+                    'name' => 'category',
+                    'type' => 'select',
+                    'instructions' => 'Is this a community-driven (social) or individual mission?',
+                    'choices' => array(
+                        'social' => 'Social Mission (Community-driven)',
+                        'personal' => 'Personal Mission (Individual journey)',
+                    ),
+                    'default_value' => 'social',
+                    'allow_null' => 0,
+                    'multiple' => 0,
+                    'ui' => 1,
+                    'return_format' => 'value',
+                ),
+                // Neighborhood Tags (for geographic discovery)
+                array(
+                    'key' => 'field_mission_neighborhood_tags',
+                    'label' => 'Neighborhood Tags',
+                    'name' => 'neighborhood_tags',
+                    'type' => 'text',
+                    'instructions' => 'Comma-separated neighborhood tags (e.g., "Hamra", "Dahiye", "Achrafieh", "Ras Beirut")',
+                    'placeholder' => 'Hamra, Dahiye, Achrafieh',
+                ),
+                // Decade Tags (for time-based discovery)
+                array(
+                    'key' => 'field_mission_decade_tags',
+                    'label' => 'Decade Tags',
+                    'name' => 'decade_tags',
+                    'type' => 'text',
+                    'instructions' => 'Comma-separated decade tags (e.g., "1970s", "1980s", "1990s", "2000s")',
+                    'placeholder' => '1970s, 1980s',
+                ),
+                // Theme Tags (for thematic discovery)
+                array(
+                    'key' => 'field_mission_theme_tags',
+                    'label' => 'Theme Tags',
+                    'name' => 'theme_tags',
+                    'type' => 'text',
+                    'instructions' => 'Comma-separated theme tags (e.g., "war", "reconstruction", "daily life", "family", "resistance")',
+                    'placeholder' => 'war, daily life, family',
                 ),
             ),
             'location' => array(

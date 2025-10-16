@@ -32,6 +32,7 @@ import '../Repos/UserRepo.dart';
 import '../Repos/MissionRepo.dart';
 import '../View Stories/StoryWidgetImgOnly.dart';
 import '../My Stories/addStory.dart';
+// import '../Missions/createMission.dart'; // REMOVED: File was deleted
 import "package:collection/collection.dart";
 import 'package:path_provider/path_provider.dart';
 
@@ -58,7 +59,7 @@ class _MapPage extends State<MapPage> {
   bool Loaded = false;
   bool showPage = false;
   bool showPageGrouped = false;
-  bool showMissionPage = false;
+  bool showMissionPage = false; // NEW: Show mission discovery card
   bool nearMe = false;
   String viewMode = 'stories'; // 'stories' or 'missions'
   dynamic location;
@@ -118,7 +119,7 @@ class _MapPage extends State<MapPage> {
 
   retrieveMissions() async {
     try {
-      // Use hardcoded Lebanon coordinates for testing
+      // Use hardcoded Lebanon coordinates for testing (like stories do)
       double testLat = 33.8938;
       double testLng = 35.5018;
 
@@ -181,6 +182,14 @@ class _MapPage extends State<MapPage> {
     if (missionsLoading || missions.isEmpty) return;
 
     for (var mission in missions) {
+      // Skip missions with missing required fields
+      if (mission['id'] == null ||
+          mission['latitude'] == null ||
+          mission['longitude'] == null) {
+        print('⚠️ Skipping malformed mission: $mission');
+        continue;
+      }
+
       allMarkers.add(Marker(
         markerId: MarkerId('mission_${mission['id']}'),
         draggable: false,
@@ -188,11 +197,11 @@ class _MapPage extends State<MapPage> {
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
         position: LatLng(mission['latitude'], mission['longitude']),
         infoWindow: InfoWindow(
-          title: mission['title'],
-          snippet: mission['excerpt'],
+          title: mission['title'] ?? 'Untitled Mission',
+          snippet: mission['excerpt'] ?? '',
         ),
         onTap: () {
-          print('🎯 Mission tapped: ${mission['title']}');
+          print('🎯 Mission tapped: ${mission['title'] ?? "Unknown"}');
           setState(() {
             showPageGrouped = false;
             showPage = false;
@@ -867,168 +876,193 @@ class _MapPage extends State<MapPage> {
                         Expanded(
                           child: Text(
                             mainMission?['title'] ?? 'مهمة',
-                            style: TextStyle(
-                              fontFamily: 'Baloo',
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Content
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.all(25),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Difficulty Badge
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: (mainMission?['difficulty'] == 'easy')
-                                    ? Colors.green
-                                    : (mainMission?['difficulty'] == 'medium')
-                                        ? Colors.orange
-                                        : Colors.red,
-                                borderRadius: BorderRadius.circular(25),
-                              ),
-                              child: Text(
-                                (mainMission?['difficulty'] == 'easy')
-                                    ? 'سهل'
-                                    : (mainMission?['difficulty'] == 'medium')
-                                        ? 'متوسط'
-                                        : 'صعب',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontFamily: 'Baloo',
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(height: 25),
-                          // Description
-                          Text(
-                            _stripHtmlTags(mainMission?['description'] ?? 'لا يوجد وصف'),
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 17,
-                              fontFamily: 'Baloo',
-                              height: 1.8,
-                            ),
-                            textAlign: TextAlign.right,
-                          ),
-                          SizedBox(height: 25),
-                          // Location
-                          Row(
-                            children: [
-                              Container(
-                                padding: EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: Color(0xFF4CAF50).withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(Icons.location_pin, color: Color(0xFF4CAF50), size: 26),
-                              ),
-                              SizedBox(width: 15),
-                              Expanded(
-                                child: Text(
-                                  mainMission?['address'] ?? 'موقع المهمة',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontFamily: 'Baloo',
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 20),
-                          // Reward Points
-                          Row(
-                            children: [
-                              Container(
-                                padding: EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: Color(0xFFFFDE73).withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(Icons.star, color: Color(0xFFFFDE73), size: 26),
-                              ),
-                              SizedBox(width: 15),
-                              Text(
-                                '${mainMission?['reward_points'] ?? 0} نقطة مكافأة',
-                                style: TextStyle(
-                                  color: Color(0xFFFFDE73),
-                                  fontSize: 18,
-                                  fontFamily: 'Baloo',
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Action Buttons at bottom
-                  Container(
-                    padding: EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFF2F69BC),
-                              padding: EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                            ),
-                            onPressed: () {
-                              // Close mission card and navigate to AddStory with mission ID
-                              setState(() {
-                                showMissionPage = false;
-                              });
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => AddStory(
-                                    token,
-                                    missionId: mainMission?['id'],
+                                    style: TextStyle(
+                                      fontFamily: 'Baloo',
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                              );
-                            },
-                            child: Text(
-                              'ساهم في المهمة',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontFamily: 'Baloo',
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                              ],
+                            ),
+                          ),
+                          // Content
+                          Expanded(
+                            child: SingleChildScrollView(
+                              padding: EdgeInsets.all(25),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Difficulty Badge
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color: (mainMission?['difficulty'] == 'easy')
+                                            ? Colors.green
+                                            : (mainMission?['difficulty'] == 'medium')
+                                                ? Colors.orange
+                                                : Colors.red,
+                                        borderRadius: BorderRadius.circular(25),
+                                      ),
+                                      child: Text(
+                                        (mainMission?['difficulty'] == 'easy')
+                                            ? 'سهل'
+                                            : (mainMission?['difficulty'] == 'medium')
+                                                ? 'متوسط'
+                                                : 'صعب',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontFamily: 'Baloo',
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 25),
+                                  // Description
+                                  Text(
+                                    _stripHtmlTags(mainMission?['description'] ?? 'لا يوجد وصف'),
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 17,
+                                      fontFamily: 'Baloo',
+                                      height: 1.8,
+                                    ),
+                                    textAlign: TextAlign.right,
+                                  ),
+                                  SizedBox(height: 25),
+                                  // Location
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                          color: Color(0xFF4CAF50).withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Icon(Icons.location_pin, color: Color(0xFF4CAF50), size: 26),
+                                      ),
+                                      SizedBox(width: 15),
+                                      Expanded(
+                                        child: Text(
+                                          mainMission?['address'] ?? 'موقع المهمة',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontFamily: 'Baloo',
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 20),
+                                  // Reward Points
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                          color: Color(0xFFFFDE73).withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Icon(Icons.star, color: Color(0xFFFFDE73), size: 26),
+                                      ),
+                                      SizedBox(width: 15),
+                                      Text(
+                                        '${mainMission?['reward_points'] ?? 0} نقطة مكافأة',
+                                        style: TextStyle(
+                                          color: Color(0xFFFFDE73),
+                                          fontSize: 18,
+                                          fontFamily: 'Baloo',
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                          // Action Buttons at bottom
+                          Container(
+                            padding: EdgeInsets.all(20),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Color(0xFF2F69BC),
+                                      padding: EdgeInsets.symmetric(vertical: 16),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(15),
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      // Close mission card and navigate to AddStory with mission ID
+                                      setState(() {
+                                        showMissionPage = false;
+                                      });
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => AddStory(
+                                            token,
+                                            missionId: mainMission?['id'],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: Text(
+                                      'ساهم في المهمة',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontFamily: 'Baloo',
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+            ],
           ),
+        ),),
+        // FloatingActionButton for Create Mission - DISABLED until createMission.dart is fixed
+        // Positioned(
+        //   bottom: 30,
+        //   left: 30,
+        //   child: FloatingActionButton(
+        //     heroTag: 'createMissionButton',
+        //     child: Container(
+        //       constraints: const BoxConstraints.expand(),
+        //       child: const Icon(
+        //         Icons.flag,
+        //         color: Colors.black,
+        //       ),
+        //       decoration: BoxDecoration(
+        //           shape: BoxShape.circle,
+        //           border: Border.all(color: Colors.black, width: 3)),
+        //     ),
+        //     foregroundColor: Color(0xFF252422),
+        //     backgroundColor: Color(0xFF4CAF50), // Green color for missions
+        //     onPressed: () {
+        //       // TODO: Re-enable when createMission.dart is restored
+        //       ScaffoldMessenger.of(context).showSnackBar(
+        //         SnackBar(content: Text('قريباً: إنشاء مهمة جديدة')),
+        //       );
+        //     },
+        //   ),
+        // ),
       ],
     ));
   }
