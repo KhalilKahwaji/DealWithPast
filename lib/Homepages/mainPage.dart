@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:interactive_map/Gallery/Gallery.dart';
-import 'package:interactive_map/Timeline/timeline.dart';
-import 'package:interactive_map/ContactUs.dart';
-import 'package:interactive_map/Map/map.dart';
-import 'package:interactive_map/profilePage.dart' show Profile;
 import 'package:interactive_map/Homepages/home_page.dart';
+import 'package:interactive_map/Map/map.dart';
+import 'package:interactive_map/Gallery/Gallery.dart';
 import 'package:interactive_map/widgets/app_bottom_nav.dart';
+import 'package:interactive_map/Missions/missions.dart';
+import 'package:interactive_map/profilePage.dart' show Profile;
 
 class WelcomePage extends StatelessWidget {
-  const WelcomePage({Key? key}) : super(key: key);
+  const WelcomePage({Key? key}) : super(key: key); // SDK-safe
 
   @override
   Widget build(BuildContext context) {
@@ -22,38 +21,32 @@ class WelcomePage extends StatelessWidget {
       TabSpec(
         id: AppTab.map,
         icon: Icons.map_outlined,
-        title: "الخارطه",
-        builder: (goTo, indexOf) => MapPage(),
+        title: "الخريطة",
+        builder: (goTo, indexOf) => const MapPage(),
       ),
       TabSpec(
         id: AppTab.gallery,
         icon: Icons.photo_library_outlined,
-        title: "عرض الروايات",
-        builder: (goTo, indexOf) => Gallery(),
+        title: "القصص",
+        builder: (goTo, indexOf) => const Gallery(),
       ),
       TabSpec(
-        id: AppTab.timeline,
-        icon: Icons.timeline,
-        title: "الجدول الزمني",
-        builder: (goTo, indexOf) => Timeline(),
+        id: AppTab.missions,
+        icon: Icons.emoji_events_outlined,
+        title: "المهام",
+        builder: (goTo, indexOf) => const MissionsPage(),
       ),
       TabSpec(
         id: AppTab.profile,
-        icon: Icons.person,
-        title: "الحساب الشخصي",
+        icon: Icons.person_outline,
+        title: "الملف",
         builder: (goTo, indexOf) => Profile(null),
-      ),
-      TabSpec(
-        id: AppTab.contact,
-        icon: Icons.contact_support,
-        title: "تواصل معنا",
-        builder: (goTo, indexOf) => ContactUs(),
       ),
     ];
 
     return AppBottomNavScaffold(
       tabs: tabs,
-      initialTab: AppTab.home, // show Home (far right)
+      initialTab: AppTab.home,
     );
   }
 }

@@ -6,11 +6,8 @@ enum AppTab {
   home,
   map,
   gallery,
-  timeline,
-  addStory,
-  contact,
+  missions,
   profile,
-  stories
 }
 
 /// One spec per tab. `builder` gets:
