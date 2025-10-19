@@ -30,7 +30,8 @@ import '../Repos/UserInfo.dart';
 
 class AddStory extends StatefulWidget {
   dynamic token;
-  AddStory(this.token, {Key? key}) : super(key: key);
+  int? missionId; // Optional mission ID for linking story to mission
+  AddStory(this.token, {this.missionId, Key? key}) : super(key: key);
 
   @override
   _AddStory createState() => _AddStory();
@@ -1280,6 +1281,8 @@ class _AddStory extends State<AddStory> {
                                               'event_date': dateformat,
                                               'anonymous': anonymous,
                                               'gallery': links,
+                                              if (widget.missionId != null)
+                                                'mission_id': widget.missionId,
                                             },
                                             'status': "pending",
                                             "featured_media": featured_image_id,

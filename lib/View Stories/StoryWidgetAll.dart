@@ -65,6 +65,117 @@ class _StoryWidgetAllState extends State<StoryWidgetAll> {
     }
   }
 
+  void _showMissionInfo() {
+    if (widget.story.missionData == null) return;
+
+    final missionDialog = AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(15))),
+      backgroundColor: Color(0xFF252422),
+      title: Row(
+        children: [
+          Icon(Icons.flag, color: Color(0xFF4CAF50), size: 24),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              widget.story.missionData['title'] ?? 'مهمة',
+              style: TextStyle(
+                color: Colors.white,
+                fontFamily: 'Baloo',
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.right,
+            ),
+          ),
+        ],
+      ),
+      content: Container(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            _buildMissionInfoRow('الفئة', widget.story.missionData['category'] == 'social' ? 'اجتماعية' : 'شخصية', Icons.category),
+            SizedBox(height: 12),
+            _buildMissionInfoRow('الصعوبة', widget.story.missionData['difficulty'] ?? 'سهل', Icons.speed),
+            SizedBox(height: 12),
+            _buildMissionInfoRow(
+              'التقدم',
+              '${widget.story.missionData['completion_count'] ?? 0} / ${widget.story.missionData['goal_count'] ?? 10}',
+              Icons.timeline,
+            ),
+            SizedBox(height: 20),
+            Container(
+              width: double.infinity,
+              child: MaterialButton(
+                color: Color(0xFF4CAF50),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                onPressed: () {
+                  Navigator.pop(context);
+                  // TODO: Navigate to map with mission pre-selected
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('لعرض المهمة على الخريطة، افتح علامة التبويب "المهام"'),
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
+                },
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    'عرض المهمة على الخريطة',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Baloo',
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    showDialog(
+      barrierDismissible: true,
+      context: context,
+      builder: (context) => missionDialog,
+    );
+  }
+
+  Widget _buildMissionInfoRow(String label, String value, IconData icon) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              color: Color(0xFFFFDE73),
+              fontFamily: 'Baloo',
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.left,
+          ),
+        ),
+        SizedBox(width: 10),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white70,
+            fontFamily: 'Baloo',
+            fontSize: 14,
+          ),
+        ),
+        SizedBox(width: 8),
+        Icon(icon, color: Colors.white70, size: 18),
+      ],
+    );
+  }
+
   void _share() {
     final _aboutdialog = StatefulBuilder(builder: (context, setState) {
       return AlertDialog(
@@ -611,6 +722,58 @@ class _BodyState extends State<Body> {
                                         ),
                                       ),
                                     ])),
+                                // Mission badge - Show if story is linked to a mission
+                                if (widget.story.missionData != null)
+                                  Container(
+                                    margin: EdgeInsets.only(top: 10),
+                                    child: Row(
+                                      children: [
+                                        InkWell(
+                                          onTap: () {
+                                            _showMissionInfo();
+                                          },
+                                          borderRadius: BorderRadius.circular(20),
+                                          child: Container(
+                                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                            decoration: BoxDecoration(
+                                              color: Color(0xFF4CAF50).withOpacity(0.2),
+                                              borderRadius: BorderRadius.circular(20),
+                                              border: Border.all(
+                                                color: Color(0xFF4CAF50),
+                                                width: 1.5,
+                                              ),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.flag,
+                                                  color: Color(0xFF4CAF50),
+                                                  size: 16,
+                                                ),
+                                                SizedBox(width: 6),
+                                                Text(
+                                                  'جزء من: ${widget.story.missionData['title'] ?? 'مهمة'}',
+                                                  style: TextStyle(
+                                                    color: Color(0xFF4CAF50),
+                                                    fontSize: 13,
+                                                    fontFamily: 'Baloo',
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                                SizedBox(width: 4),
+                                                Icon(
+                                                  Icons.arrow_forward_ios,
+                                                  color: Color(0xFF4CAF50),
+                                                  size: 12,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                               ],
                             ),
                           ],
@@ -724,5 +887,117 @@ class _BodyState extends State<Body> {
             itemBuilder: (BuildContext context, int index) {
               return myList[index];
             }));
+  }
+
+  void _showMissionInfo() {
+    if (widget.story.missionData == null) return;
+
+    final missionDialog = AlertDialog(
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(15))),
+      backgroundColor: Color(0xFF252422),
+      title: Row(
+        children: [
+          Icon(Icons.flag, color: Color(0xFF4CAF50), size: 24),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              widget.story.missionData['title'] ?? 'مهمة',
+              style: TextStyle(
+                color: Colors.white,
+                fontFamily: 'Baloo',
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.right,
+            ),
+          ),
+        ],
+      ),
+      content: Container(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            _buildMissionInfoRow(
+                'الفئة',
+                widget.story.missionData['category'] == 'social'
+                    ? 'اجتماعية'
+                    : 'شخصية',
+                Icons.category),
+            SizedBox(height: 12),
+            _buildMissionInfoRow(
+                'الصعوبة',
+                widget.story.missionData['difficulty'] ?? 'سهل',
+                Icons.speed),
+            SizedBox(height: 12),
+            _buildMissionInfoRow(
+              'التقدم',
+              '${widget.story.missionData['completion_count'] ?? 0} / ${widget.story.missionData['goal_count'] ?? 10}',
+              Icons.timeline,
+            ),
+            SizedBox(height: 20),
+            Center(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  // Navigate to mission details page if needed
+                },
+                icon: Icon(Icons.arrow_forward, color: Colors.white),
+                label: Text(
+                  'عرض المهمة',
+                  style: TextStyle(
+                    fontFamily: 'Baloo',
+                    fontSize: 16,
+                    color: Colors.white,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF4CAF50),
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    showDialog(
+      barrierDismissible: true,
+      context: context,
+      builder: (context) => missionDialog,
+    );
+  }
+
+  Widget _buildMissionInfoRow(String label, String value, IconData icon) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            color: Colors.white70,
+            fontFamily: 'Baloo',
+            fontSize: 15,
+          ),
+        ),
+        SizedBox(width: 8),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white,
+            fontFamily: 'Baloo',
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        SizedBox(width: 8),
+        Icon(icon, color: Color(0xFF4CAF50), size: 20),
+      ],
+    );
   }
 }
