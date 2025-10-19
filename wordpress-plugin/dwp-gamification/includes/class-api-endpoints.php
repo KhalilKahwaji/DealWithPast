@@ -17,6 +17,9 @@ class DWP_API_Endpoints {
      */
     public function __construct() {
         add_action('rest_api_init', array($this, 'register_routes'));
+
+        // Add mission data to story REST API responses
+        add_filter('rest_prepare_stories', array($this, 'add_mission_data_to_story'), 10, 3);
     }
 
     /**
@@ -988,5 +991,45 @@ class DWP_API_Endpoints {
             'platform' => $platform,
             'share' => $share_data,
         ));
+    }
+
+    /**
+     * Add mission data to story REST API responses (bidirectional linking)
+     *
+     * This filter enriches story responses with mission metadata when a story
+     * is linked to a mission via the mission_id ACF field.
+     *
+     * @param WP_REST_Response $response The response object
+     * @param WP_Post $post The post object
+     * @param WP_REST_Request $request The request object
+     * @return WP_REST_Response Modified response with mission data
+     */
+    public function add_mission_data_to_story($response, $post, $request) {
+        // Get mission_id from ACF field
+        $mission_id = get_field('mission_id', $post->ID);
+
+        if ($mission_id && is_numeric($mission_id)) {
+            // Fetch mission data
+            $mission_post = get_post($mission_id);
+
+            if ($mission_post && $mission_post->post_type === 'mission' && $mission_post->post_status === 'publish') {
+                // Get mission metadata
+                $mission_data = array(
+                    'id' => (int) $mission_id,
+                    'title' => $mission_post->post_title,
+                    'category' => get_field('category', $mission_id) ?: 'social',
+                    'difficulty' => get_field('difficulty', $mission_id) ?: 'easy',
+                    'goal_count' => (int) get_field('goal_count', $mission_id) ?: 10,
+                    'completion_count' => $this->get_mission_story_count($mission_id),
+                );
+
+                // Add mission data to response
+                $response_data = $response->get_data();
+                $response_data['mission_data'] = $mission_data;
+                $response->set_data($response_data);
+            }
+        }
+
+        return $response;
     }
 }

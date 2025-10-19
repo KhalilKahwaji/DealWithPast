@@ -20,6 +20,8 @@ class Story {
   final dynamic gallery;
   final dynamic anonymous;
   final dynamic link;
+  final dynamic missionId; // Mission ID if story is part of a mission
+  final dynamic missionData; // Optional mission metadata (title, etc.)
   // final dynamic video;
   // final dynamic audio;
 
@@ -39,7 +41,9 @@ class Story {
       this.lat,
       this.lng,
       this.anonymous,
-      this.link);
+      this.link,
+      this.missionId,
+      this.missionData);
 
   Story.fromJson(Map<String, dynamic> json)
       : title = json['title']['rendered'],
@@ -55,7 +59,9 @@ class Story {
         author = json['author'],
         locationName = json['acf']['map_location']['name'],
         lat = json['acf']['map_location']['lat'],
-        lng = json['acf']['map_location']['lng'];
+        lng = json['acf']['map_location']['lng'],
+        missionId = json['acf']['mission_id'], // Parse mission_id from ACF
+        missionData = json['mission_data']; // Optional mission metadata from API
 
   Map<String, dynamic> toJson() => {
         'title': title,
@@ -71,5 +77,7 @@ class Story {
         'locationName': locationName,
         'lat': lat,
         'lng': lng,
+        'missionId': missionId,
+        'missionData': missionData,
       };
 }
