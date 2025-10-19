@@ -10,7 +10,11 @@ Complete mission gamification system for Deal With Past (Lebanese Civil War memo
 ### ✅ 1. Mission Discovery System (Flutter)
 - **Mission markers** on Google Maps with green pins
 - **Toggle view** between Stories and Missions
-- **Mission discovery card** with smooth slide-up animation
+- **Mission discovery card** with smooth slide-up animation (80% screen height, scrollable)
+- **Search bar** with RTL Arabic support and context-sensitive placeholders
+- **Filter dialog** with modal bottom sheet and category FilterChips (social/personal)
+- **Progress bar** showing completion_count/goal_count with visual green fill
+- **Metadata badges** color-coded (green=participants, yellow=decades, blue=neighborhoods)
 - **Clean UI** with proper spacing (25px), readable fonts (17-20px)
 - **HTML stripping** from WordPress content (removes `wp:paragraph`, tags)
 - **Null-safety** to prevent crashes
@@ -19,12 +23,16 @@ Complete mission gamification system for Deal With Past (Lebanese Civil War memo
 
 ### ✅ 2. Mission REST API (WordPress)
 - **GET `/dwp/v1/missions/nearby`** - Find missions by location (Haversine formula, 100km radius)
+  - **Filter parameters**: `?neighborhood=Hamra&decade=1980s&theme=war&category=social`
+  - **Tag filtering**: neighborhood_tags, decade_tags, theme_tags (case-insensitive search)
+  - **Category filter**: social (community quests) or personal (tributes)
 - **GET `/dwp/v1/missions/{id}`** - Get mission details with user status
 - **POST `/dwp/v1/missions/create`** - Create new missions (pending approval)
 - **POST `/dwp/v1/missions/start`** - Start a mission
 - **POST `/dwp/v1/missions/complete`** - Complete with proof media
 - **GET `/dwp/v1/missions/my-missions`** - User's mission history
 - **Auto-calculated rules** - Goals, points, duration based on difficulty
+- **Auto-calculated rewards** - `base[difficulty] × (goal_count/10)` - easy=5, medium=10, hard=15 base
 - **Safety first** - ALL missions pending approval (no auto-publish)
 
 ### ✅ 3. Mission Categories & Rules
@@ -67,13 +75,22 @@ Complete mission gamification system for Deal With Past (Lebanese Civil War memo
 - **Dashicons** and color coding (green/orange/red)
 - **Human-readable time** ("2 hours ago")
 
-### ✅ 7. Database Schema
+### ✅ 7. Tag-Based Discovery System (Phase 1 - Oct 2025)
+- **Neighborhood tags** - Comma-separated list (e.g., "Hamra, Dahiye, Achrafieh")
+- **Decade tags** - Time period markers (e.g., "1970s, 1980s, 1990s")
+- **Theme tags** - Thematic categories (e.g., "war, reconstruction, daily life, family")
+- **Goal count** - Target number of story contributions (1-100)
+- **Category field** - Mission type: social (community quest) or personal (tribute)
+- **API filtering** - Filter missions by any tag combination via query parameters
+- **Auto-calculated rewards** - Points based on difficulty × goal_count formula (replaces manual entry)
+
+### ✅ 8. Database Schema
 - **`wp_user_missions`** - User mission progress tracking
 - **`wp_achievements`** - Badge definitions
 - **`wp_user_achievements`** - User badge collection
-- **ACF fields** - Missions metadata (lat/lng, difficulty, category, etc.)
+- **ACF fields** (15 total) - Missions metadata (lat/lng, difficulty, category, goal_count, tags, etc.)
 
-### ✅ 8. Safety & Security
+### ✅ 9. Safety & Security
 - **All missions pending** approval before publish
 - **Nonce verification** for all AJAX actions
 - **Capability checks** (`edit_posts` permission)
@@ -121,15 +138,18 @@ DealWithPast/lib/
 
 ## Key Features
 
-🎯 **Mission Discovery** - Find missions near you on interactive map
-🏆 **Gamification** - Points, badges, achievements
+🎯 **Mission Discovery** - Find missions near you on interactive map with search and filters
+🔍 **Tag-Based Filtering** - Filter by neighborhood, decade, theme, and category (social/personal)
+📊 **Progress Visualization** - Visual progress bars showing completion_count/goal_count ratio
+🏷️ **Metadata Badges** - Color-coded chips for participants, time periods, and locations
+🏆 **Gamification** - Auto-calculated points, badges, achievements
 🙏 **Personal Tributes** - Poems, eulogies with emoji reactions
 👥 **Social Quests** - Community-driven missions with followers
 📱 **Mobile Sharing** - WhatsApp, Facebook, Twitter integration
 🛡️ **Content Moderation** - Admin approval workflow
-🌍 **Arabic Support** - RTL layout, Arabic numbers, bilingual
-📊 **Progress Tracking** - User mission history and status
-🎨 **Clean UI** - Game-like animations, readable design
+🌍 **Arabic Support** - RTL layout, Arabic search, bilingual
+📈 **Progress Tracking** - User mission history and status
+🎨 **Clean UI** - Responsive cards (80% height), game-like animations, readable design
 
 ---
 
@@ -163,31 +183,6 @@ c562fe2 fix: Resolve mission discovery card null pointer error and HTML display 
 
 ---
 
-## What's Ready
-
-✅ WordPress plugin fully functional
-✅ Flutter app mission discovery working
-✅ Emoji reactions for tributes
-✅ Social sharing for all platforms
-✅ Admin approval workflow
-✅ Auto-calculated mission rules
-✅ Null-safe, crash-free
-✅ HTML tag stripping
-✅ Clean, readable UI
-
----
-
-## Installation
-
-1. Upload `dwp-gamification` to `/wp-content/plugins/`
-2. Activate plugin in WordPress admin
-3. Ensure ACF Pro is installed
-4. Configure ACF fields for Mission post type
-5. Build and run Flutter app
-6. Test mission creation and approval
-
----
-
 ## Testing Checklist
 
 - [x] Create social mission → Check auto-calculated rules
@@ -203,4 +198,4 @@ c562fe2 fix: Resolve mission discovery card null pointer error and HTML display 
 
 ---
 
-**Status**: ✅ **FULLY FUNCTIONAL - READY FOR PRODUCTION TESTING**
+## The End ;)

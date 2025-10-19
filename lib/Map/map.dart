@@ -202,6 +202,8 @@ class _MapPage extends State<MapPage> {
         ),
         onTap: () {
           print('🎯 Mission tapped: ${mission['title'] ?? "Unknown"}');
+          print('🆔 Mission ID: ${mission['id']}');
+          print('📦 Full mission data: $mission');
           setState(() {
             showPageGrouped = false;
             showPage = false;
@@ -1006,6 +1008,28 @@ class _MapPage extends State<MapPage> {
                                       ),
                                     ),
                                     onPressed: () {
+                                      // Debug: Check what missionId we're passing
+                                      print('🔍 Button pressed: Attempting to navigate with mission ID: ${mainMission?['id']}');
+                                      print('📦 mainMission data: $mainMission');
+
+                                      // Safety check: Make sure mainMission and id exist
+                                      if (mainMission == null) {
+                                        print('❌ ERROR: mainMission is null!');
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('خطأ: لم يتم العثور على بيانات المهمة')),
+                                        );
+                                        return;
+                                      }
+                                      if (mainMission!['id'] == null) {
+                                        print('❌ ERROR: Mission ID is null!');
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('خطأ: معرف المهمة غير موجود')),
+                                        );
+                                        return;
+                                      }
+
+                                      print('✅ Valid mission ID found: ${mainMission!['id']}');
+
                                       // Close mission card and navigate to AddStory with mission ID
                                       setState(() {
                                         showMissionPage = false;
@@ -1015,7 +1039,7 @@ class _MapPage extends State<MapPage> {
                                         MaterialPageRoute(
                                           builder: (context) => AddStory(
                                             token,
-                                            missionId: mainMission?['id'],
+                                            missionId: mainMission!['id'],
                                           ),
                                         ),
                                       );
