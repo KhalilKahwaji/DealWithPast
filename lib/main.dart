@@ -10,7 +10,7 @@ Future<void> main() async {
   await Firebase.initializeApp();
   // REMOVE: await signOut();
   runApp(MyApp());
-}
+}//hello khalil
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
