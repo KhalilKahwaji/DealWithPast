@@ -888,4 +888,116 @@ class _BodyState extends State<Body> {
               return myList[index];
             }));
   }
+
+  void _showMissionInfo() {
+    if (widget.story.missionData == null) return;
+
+    final missionDialog = AlertDialog(
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(15))),
+      backgroundColor: Color(0xFF252422),
+      title: Row(
+        children: [
+          Icon(Icons.flag, color: Color(0xFF4CAF50), size: 24),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              widget.story.missionData['title'] ?? 'مهمة',
+              style: TextStyle(
+                color: Colors.white,
+                fontFamily: 'Baloo',
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.right,
+            ),
+          ),
+        ],
+      ),
+      content: Container(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            _buildMissionInfoRow(
+                'الفئة',
+                widget.story.missionData['category'] == 'social'
+                    ? 'اجتماعية'
+                    : 'شخصية',
+                Icons.category),
+            SizedBox(height: 12),
+            _buildMissionInfoRow(
+                'الصعوبة',
+                widget.story.missionData['difficulty'] ?? 'سهل',
+                Icons.speed),
+            SizedBox(height: 12),
+            _buildMissionInfoRow(
+              'التقدم',
+              '${widget.story.missionData['completion_count'] ?? 0} / ${widget.story.missionData['goal_count'] ?? 10}',
+              Icons.timeline,
+            ),
+            SizedBox(height: 20),
+            Center(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  // Navigate to mission details page if needed
+                },
+                icon: Icon(Icons.arrow_forward, color: Colors.white),
+                label: Text(
+                  'عرض المهمة',
+                  style: TextStyle(
+                    fontFamily: 'Baloo',
+                    fontSize: 16,
+                    color: Colors.white,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF4CAF50),
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    showDialog(
+      barrierDismissible: true,
+      context: context,
+      builder: (context) => missionDialog,
+    );
+  }
+
+  Widget _buildMissionInfoRow(String label, String value, IconData icon) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            color: Colors.white70,
+            fontFamily: 'Baloo',
+            fontSize: 15,
+          ),
+        ),
+        SizedBox(width: 8),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white,
+            fontFamily: 'Baloo',
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        SizedBox(width: 8),
+        Icon(icon, color: Color(0xFF4CAF50), size: 20),
+      ],
+    );
+  }
 }
