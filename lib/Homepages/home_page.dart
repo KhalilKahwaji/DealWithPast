@@ -107,7 +107,7 @@ class _HomePageState extends State<HomePage> {
               context,
               label: 'ابدأ كتابة روايتك',
               icon: Icons.edit_outlined,
-              onTap: () => widget..goTo(AppTab.addStory), // <-- HERE
+              onTap: () => widget.goTo(AppTab.missions), // <-- PLACEHOLDER
             ),
             const SizedBox(height: 24),
 

@@ -52,7 +52,7 @@ class _Gallery extends State<Gallery> {
     return directory.path;
   }
 
-  Future<File> get _localFile async {
+  Future<File> get _rawStoriesFile async {
     final path = await _localPath;
     return File('$path/stories.json');
   }
@@ -60,7 +60,7 @@ class _Gallery extends State<Gallery> {
   Future<dynamic> readCounter() async {
     try {
       var stor = [];
-      final file = await _localFile;
+      final file = await _rawStoriesFile;
       final contents = await file.readAsString();
       var data = await json.decode(contents);
       for (int i = 0; i < data.length; i++) {

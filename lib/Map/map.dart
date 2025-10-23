@@ -77,6 +77,13 @@ class _MapPage extends State<MapPage> {
   late locationPerm.LocationData _locationData;
   List<dynamic> groupedStories = [];
   List<dynamic> groupedMain = [];
+  TextEditingController searchController = TextEditingController();
+  String searchQuery = '';
+  // Filter state
+  String? selectedNeighborhood;
+  String? selectedDecade;
+  String? selectedTheme;
+  String? selectedCategory; // 'social' or 'personal'
 
   Future<String> get _localPath async {
     final directory = await getApplicationDocumentsDirectory();
@@ -181,6 +188,11 @@ class _MapPage extends State<MapPage> {
   void loadMissionMarkers() async {
     if (missionsLoading || missions.isEmpty) return;
 
+    // Calculate marker sizes (same as stories)
+    double doubleSize = (0.12186629526462396 * MediaQuery.of(context).size.height);
+    var sizeIMG = (doubleSize / 1.25).toInt();
+    int sizeAssets = ((0.18279944289693595 * MediaQuery.of(context).size.height) / 1.25).toInt();
+
     for (var mission in missions) {
       // Skip missions with missing required fields
       if (mission['id'] == null ||
@@ -190,11 +202,14 @@ class _MapPage extends State<MapPage> {
         continue;
       }
 
+      // Get marker icon with priority: creator avatar → thumbnail → type icon
+      BitmapDescriptor markerIcon = await _getMissionMarkerIcon(mission, sizeIMG, sizeAssets);
+
       allMarkers.add(Marker(
         markerId: MarkerId('mission_${mission['id']}'),
         draggable: false,
         consumeTapEvents: true,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+        icon: markerIcon,
         position: LatLng(mission['latitude'], mission['longitude']),
         infoWindow: InfoWindow(
           title: mission['title'] ?? 'Untitled Mission',
@@ -202,8 +217,6 @@ class _MapPage extends State<MapPage> {
         ),
         onTap: () {
           print('🎯 Mission tapped: ${mission['title'] ?? "Unknown"}');
-          print('🆔 Mission ID: ${mission['id']}');
-          print('📦 Full mission data: $mission');
           setState(() {
             showPageGrouped = false;
             showPage = false;
@@ -214,6 +227,81 @@ class _MapPage extends State<MapPage> {
       ));
     }
     if (mounted) setState(() {});
+  }
+
+  /// Helper function to determine marker icon with priority system
+  /// Priority: 1. Creator avatar → 2. Mission thumbnail → 3. Mission type icon
+  Future<BitmapDescriptor> _getMissionMarkerIcon(
+    Map<String, dynamic> mission,
+    int sizeIMG,
+    int sizeAssets
+  ) async {
+    // Determine border color based on category (social=green, personal=purple)
+    Color borderColor = mission['category'] == 'social'
+        ? Color(0xFF4CAF50)  // Green for social missions
+        : Color(0xFF9C27B0); // Purple for personal missions
+
+    // Priority 1: Creator avatar (when API is updated to include this field)
+    if (mission['creator_avatar'] != null && mission['creator_avatar'].toString().isNotEmpty) {
+      try {
+        return BitmapDescriptor.fromBytes(
+          await getBytesFromAsset(
+            mission['creator_avatar'],
+            sizeIMG,
+            sizeIMG,
+            sizeAssets,
+            borderColor: borderColor,
+            borderSize: 14, // Slightly thicker border for missions
+          )
+        );
+      } catch (e) {
+        print('⚠️ Failed to load creator avatar for mission ${mission['id']}: $e');
+        // Fall through to next priority
+      }
+    }
+
+    // Priority 2: Mission thumbnail image
+    if (mission['thumbnail'] != null && mission['thumbnail'].toString().isNotEmpty) {
+      try {
+        return BitmapDescriptor.fromBytes(
+          await getBytesFromAsset(
+            mission['thumbnail'],
+            sizeIMG,
+            sizeIMG,
+            sizeAssets,
+            borderColor: borderColor,
+            borderSize: 14,
+          )
+        );
+      } catch (e) {
+        print('⚠️ Failed to load thumbnail for mission ${mission['id']}: $e');
+        // Fall through to next priority
+      }
+    }
+
+    // Priority 3: Mission type icon (colored marker as placeholder)
+    // TODO Phase 3: Replace with actual mission type icons (visit/interview/photograph/research/memorial)
+    String missionType = mission['mission_type'] ?? 'visit';
+    double hue = _getMissionTypeHue(missionType);
+    return BitmapDescriptor.defaultMarkerWithHue(hue);
+  }
+
+  /// Get marker color hue based on mission type (placeholder until Phase 3 icons)
+  double _getMissionTypeHue(String missionType) {
+    switch (missionType) {
+      case 'visit':
+        return BitmapDescriptor.hueGreen;
+      case 'interview':
+        return BitmapDescriptor.hueBlue;
+      case 'photograph':
+        return BitmapDescriptor.hueOrange;
+      case 'research':
+        return BitmapDescriptor.hueViolet;
+      case 'memorial':
+        return BitmapDescriptor.hueRed;
+      default:
+        return BitmapDescriptor.hueGreen; // Default to visit type
+    }
   }
 
   Future<Uint8List> getBytesFromCanvas(
@@ -517,6 +605,149 @@ class _MapPage extends State<MapPage> {
     return text;
   }
 
+  /// Calculate progress percentage from completion count and goal count
+  double _calculateProgress(dynamic completionCount, dynamic goalCount) {
+    int completed = completionCount is int ? completionCount : 0;
+    int goal = goalCount is int ? goalCount : 1;
+    if (goal == 0) return 0.0;
+    double progress = completed / goal;
+    return progress.clamp(0.0, 1.0); // Ensure 0.0-1.0 range
+  }
+
+  /// Show filter dialog for missions
+  void _showFilterDialog() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Color(0xFF252422),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Container(
+              padding: EdgeInsets.all(25),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  // Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          setModalState(() {
+                            selectedNeighborhood = null;
+                            selectedDecade = null;
+                            selectedTheme = null;
+                            selectedCategory = null;
+                          });
+                        },
+                        child: Text(
+                          'مسح الكل',
+                          style: TextStyle(
+                            color: Color(0xFF4CAF50),
+                            fontFamily: 'Baloo',
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        'تصفية المهمات',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontFamily: 'Baloo',
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20),
+                  // Category filter
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      'نوع المهمة',
+                      style: TextStyle(
+                        color: Color(0xFFFFDE73),
+                        fontFamily: 'Baloo',
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Wrap(
+                    alignment: WrapAlignment.end,
+                    spacing: 10,
+                    children: [
+                      FilterChip(
+                        label: Text('اجتماعية', style: TextStyle(fontFamily: 'Baloo')),
+                        selected: selectedCategory == 'social',
+                        selectedColor: Color(0xFF4CAF50),
+                        backgroundColor: Colors.grey.shade800,
+                        labelStyle: TextStyle(color: selectedCategory == 'social' ? Colors.white : Colors.grey),
+                        onSelected: (selected) {
+                          setModalState(() {
+                            selectedCategory = selected ? 'social' : null;
+                          });
+                        },
+                      ),
+                      FilterChip(
+                        label: Text('شخصية', style: TextStyle(fontFamily: 'Baloo')),
+                        selected: selectedCategory == 'personal',
+                        selectedColor: Color(0xFF9C27B0),
+                        backgroundColor: Colors.grey.shade800,
+                        labelStyle: TextStyle(color: selectedCategory == 'personal' ? Colors.white : Colors.grey),
+                        onSelected: (selected) {
+                          setModalState(() {
+                            selectedCategory = selected ? 'personal' : null;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20),
+                  // Apply button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF4CAF50),
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          // Apply filters and close dialog
+                          // TODO: Implement actual filtering logic
+                        });
+                        Navigator.pop(context);
+                      },
+                      child: Text(
+                        'تطبيق',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontFamily: 'Baloo',
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -612,6 +843,98 @@ class _MapPage extends State<MapPage> {
                   ),
                 ],
               ),
+            ),
+          ),
+        ),
+        // Search Bar
+        Positioned(
+          top: 120,
+          left: 20,
+          right: 20,
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 15),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.search, color: Color(0xFF252422), size: 24),
+                SizedBox(width: 10),
+                // Filter icon button (only show in missions mode)
+                if (viewMode == 'missions')
+                  GestureDetector(
+                    onTap: () => _showFilterDialog(),
+                    child: Container(
+                      padding: EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: (selectedNeighborhood != null ||
+                               selectedDecade != null ||
+                               selectedTheme != null ||
+                               selectedCategory != null)
+                            ? Color(0xFF4CAF50).withOpacity(0.2)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.filter_list,
+                        color: (selectedNeighborhood != null ||
+                               selectedDecade != null ||
+                               selectedTheme != null ||
+                               selectedCategory != null)
+                            ? Color(0xFF4CAF50)
+                            : Color(0xFF252422),
+                        size: 22,
+                      ),
+                    ),
+                  ),
+                if (viewMode == 'missions')
+                  SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: searchController,
+                    textAlign: TextAlign.right, // RTL for Arabic
+                    style: TextStyle(
+                      fontFamily: 'Baloo',
+                      fontSize: 16,
+                      color: Color(0xFF252422),
+                    ),
+                    decoration: InputDecoration(
+                      hintText: viewMode == 'missions'
+                          ? 'ابحث عن المهمات...'
+                          : 'ابحث عن الروايات...',
+                      hintStyle: TextStyle(
+                        fontFamily: 'Baloo',
+                        color: Colors.grey,
+                      ),
+                      border: InputBorder.none,
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        searchQuery = value;
+                        // TODO: Implement search filtering
+                      });
+                    },
+                  ),
+                ),
+                if (searchQuery.isNotEmpty)
+                  IconButton(
+                    icon: Icon(Icons.clear, color: Colors.grey),
+                    onPressed: () {
+                      setState(() {
+                        searchController.clear();
+                        searchQuery = '';
+                      });
+                    },
+                  ),
+              ],
             ),
           ),
         ),
@@ -844,7 +1167,7 @@ class _MapPage extends State<MapPage> {
             left: 0,
             right: 0,
             child: Container(
-              height: 400,
+              height: MediaQuery.of(context).size.height * 0.8, // 80% of screen height
               decoration: BoxDecoration(
                 color: Color(0xFF252422),
                 borderRadius: BorderRadius.only(
@@ -926,7 +1249,44 @@ class _MapPage extends State<MapPage> {
                                       ),
                                     ),
                                   ),
-                                  SizedBox(height: 25),
+                                  SizedBox(height: 15),
+                                  // Creator Info
+                                  if (mainMission?['creator_name'] != null)
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          mainMission?['creator_name'] ?? '',
+                                          style: TextStyle(
+                                            color: Colors.grey.shade400,
+                                            fontSize: 14,
+                                            fontFamily: 'Baloo',
+                                          ),
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'أنشأ بواسطة',
+                                          style: TextStyle(
+                                            color: Colors.grey.shade500,
+                                            fontSize: 13,
+                                            fontFamily: 'Baloo',
+                                          ),
+                                        ),
+                                        SizedBox(width: 8),
+                                        CircleAvatar(
+                                          radius: 15,
+                                          backgroundImage: mainMission?['creator_avatar'] != null
+                                              ? NetworkImage(mainMission!['creator_avatar'])
+                                              : null,
+                                          backgroundColor: Colors.grey.shade700,
+                                          child: mainMission?['creator_avatar'] == null
+                                              ? Icon(Icons.person, size: 18, color: Colors.white)
+                                              : null,
+                                        ),
+                                      ],
+                                    ),
+                                  if (mainMission?['creator_name'] != null)
+                                    SizedBox(height: 20),
                                   // Description
                                   Text(
                                     _stripHtmlTags(mainMission?['description'] ?? 'لا يوجد وصف'),
@@ -989,6 +1349,135 @@ class _MapPage extends State<MapPage> {
                                       ),
                                     ],
                                   ),
+                                  SizedBox(height: 25),
+                                  // Progress Bar
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      // Progress text (8/10 قصص)
+                                      Text(
+                                        '${mainMission?['completion_count'] ?? 0}/${mainMission?['goal_count'] ?? 0} قصص',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontFamily: 'Baloo',
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        textAlign: TextAlign.right,
+                                      ),
+                                      SizedBox(height: 10),
+                                      // Visual progress bar
+                                      Container(
+                                        width: double.infinity,
+                                        height: 8,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade800,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: FractionallySizedBox(
+                                          alignment: Alignment.centerLeft,
+                                          widthFactor: _calculateProgress(
+                                            mainMission?['completion_count'],
+                                            mainMission?['goal_count'],
+                                          ),
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              color: Color(0xFF4CAF50),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 25),
+                                  // Metadata Badges
+                                  Wrap(
+                                    alignment: WrapAlignment.end, // Right-align for RTL
+                                    spacing: 10,
+                                    runSpacing: 10,
+                                    children: [
+                                      // Participant count badge
+                                      Container(
+                                        padding: EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: Color(0xFF4CAF50).withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(20),
+                                          border: Border.all(color: Color(0xFF4CAF50), width: 1),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              '${mainMission?['completion_count'] ?? 0} مشارك',
+                                              style: TextStyle(
+                                                color: Color(0xFF4CAF50),
+                                                fontSize: 14,
+                                                fontFamily: 'Baloo',
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            SizedBox(width: 6),
+                                            Icon(Icons.people, color: Color(0xFF4CAF50), size: 18),
+                                          ],
+                                        ),
+                                      ),
+                                      // Decade tags (if available)
+                                      if (mainMission?['decade_tags'] != null &&
+                                          (mainMission?['decade_tags'] as List).isNotEmpty)
+                                        ...((mainMission?['decade_tags'] as List).take(2).map((tag) => Container(
+                                          padding: EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                                          decoration: BoxDecoration(
+                                            color: Color(0xFFFFDE73).withOpacity(0.2),
+                                            borderRadius: BorderRadius.circular(20),
+                                            border: Border.all(color: Color(0xFFFFDE73), width: 1),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                tag.toString(),
+                                                style: TextStyle(
+                                                  color: Color(0xFFFFDE73),
+                                                  fontSize: 14,
+                                                  fontFamily: 'Baloo',
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              SizedBox(width: 6),
+                                              Icon(Icons.calendar_today, color: Color(0xFFFFDE73), size: 16),
+                                            ],
+                                          ),
+                                        ))),
+                                      // Neighborhood tags (if available)
+                                      if (mainMission?['neighborhood_tags'] != null &&
+                                          (mainMission?['neighborhood_tags'] as List).isNotEmpty)
+                                        ...((mainMission?['neighborhood_tags'] as List).take(2).map((tag) => Container(
+                                          padding: EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                                          decoration: BoxDecoration(
+                                            color: Color(0xFF2F69BC).withOpacity(0.2),
+                                            borderRadius: BorderRadius.circular(20),
+                                            border: Border.all(color: Color(0xFF2F69BC), width: 1),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                tag.toString(),
+                                                style: TextStyle(
+                                                  color: Color(0xFF2F69BC),
+                                                  fontSize: 14,
+                                                  fontFamily: 'Baloo',
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              SizedBox(width: 6),
+                                              Icon(Icons.location_city, color: Color(0xFF2F69BC), size: 16),
+                                            ],
+                                          ),
+                                        ))),
+                                    ],
+                                  ),
                                 ],
                               ),
                             ),
@@ -1008,28 +1497,6 @@ class _MapPage extends State<MapPage> {
                                       ),
                                     ),
                                     onPressed: () {
-                                      // Debug: Check what missionId we're passing
-                                      print('🔍 Button pressed: Attempting to navigate with mission ID: ${mainMission?['id']}');
-                                      print('📦 mainMission data: $mainMission');
-
-                                      // Safety check: Make sure mainMission and id exist
-                                      if (mainMission == null) {
-                                        print('❌ ERROR: mainMission is null!');
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('خطأ: لم يتم العثور على بيانات المهمة')),
-                                        );
-                                        return;
-                                      }
-                                      if (mainMission!['id'] == null) {
-                                        print('❌ ERROR: Mission ID is null!');
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('خطأ: معرف المهمة غير موجود')),
-                                        );
-                                        return;
-                                      }
-
-                                      print('✅ Valid mission ID found: ${mainMission!['id']}');
-
                                       // Close mission card and navigate to AddStory with mission ID
                                       setState(() {
                                         showMissionPage = false;
@@ -1039,7 +1506,7 @@ class _MapPage extends State<MapPage> {
                                         MaterialPageRoute(
                                           builder: (context) => AddStory(
                                             token,
-                                            missionId: mainMission!['id'],
+                                            missionId: mainMission?['id'],
                                           ),
                                         ),
                                       );

@@ -1,133 +1,158 @@
-//Base Login Page
-
-// ignore_for_file: file_names, unused_import, use_key_in_widget_constructors, prefer_typing_uninitialized_variables, unnecessary_this, prefer_const_constructors, avoid_unnecessary_containers, duplicate_ignore
-
-import 'dart:io';
-import 'package:firebase_auth/firebase_auth.dart';
+// lib/Backend/Login.dart
+import 'dart:async';                           // TimeoutException
+import 'package:flutter/foundation.dart';      // debugPrint
 import 'package:flutter/material.dart';
-import 'package:interactive_map/Repos/UserRepo.dart';
-import 'package:interactive_map/Repos/media.dart';
-import 'package:interactive_map/Homepages/mainPage.dart';
-import 'package:interactive_map/Homepages/mainPageGuest.dart';
-import 'package:interactive_map/Map/map.dart';
+import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuthException, User;
 
 import 'auth.dart';
+import 'package:interactive_map/Homepages/mainPage.dart'; // WelcomePage
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
+  final void Function(BuildContext, User)? onSuccess;
+  const LoginPage({Key? key, this.onSuccess}) : super(key: key);
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  bool _busy = false;
+
+  Future<void> _click() async {
+    debugPrint('[LOGIN] click: user tapped Google login');
+    if (mounted) setState(() => _busy = true);
+
+    try {
+      final user = await signInWithGoogle();
+      if (user == null) {
+        debugPrint('[LOGIN] cancelled / no user');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('تم إلغاء تسجيل الدخول')),
+          );
+        }
+        return;
+      }
+
+      debugPrint('[LOGIN] Firebase user OK: uid=${user.uid}, email=${user.email}');
+
+      if (!mounted) return;
+      if (widget.onSuccess != null) {
+        widget.onSuccess!(context, user);
+      } else {
+        // Default: go to your main page
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const WelcomePage()),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      debugPrint('[LOGIN][FirebaseAuthException] ${e.code} ${e.message}');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('فشل تسجيل الدخول: ${e.code}')),
+        );
+      }
+    } on TimeoutException {
+      debugPrint('[LOGIN][Timeout]');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('انتهت المهلة. تحقق من الاتصال.')),
+        );
+      }
+    } catch (e) {
+      debugPrint('[LOGIN][Exception] $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('حدث خطأ غير متوقع')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        // ignore: prefer_const_constructors
-        title: Center(child: Text('Deal With Past')),
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        appBar: AppBar(title: const Text('تسجيل الدخول')),
+        body: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Spacer(),
+                  ElevatedButton.icon(
+                    onPressed: _busy ? null : _click,
+                    icon: const Icon(Icons.login),
+                    label: const Text('تسجيل الدخول باستخدام Google'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'سنستخدم حساب Google للتحقق من الهوية ثم نربطه بحسابك على المنصة.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const Spacer(),
+                ],
+              ),
+            ),
+            if (_busy)
+              Container(
+                color: Colors.black.withOpacity(0.15),
+                alignment: Alignment.center,
+                child: const SizedBox(
+                  width: 42, height: 42,
+                  child: CircularProgressIndicator(strokeWidth: 3),
+                ),
+              ),
+          ],
+        ),
       ),
-      body: Body(),
     );
   }
 }
 
-class Body extends StatefulWidget {
-  @override
-  _BodyState createState() => _BodyState();
-}
-
-class _BodyState extends State<Body> {
-  UserRepo userRepo = UserRepo();
-  Media media = Media();
-  late var token;
-
-  @override
-  void initState() {
-    super.initState();
+/// Legacy helper if other code still calls a top-level `click(context)`.
+Future<void> click(BuildContext context) async {
+  final state = context.findAncestorStateOfType<_LoginPageState>();
+  if (state != null) {
+    await state._click();
+    return;
   }
-
-  Future<void> click() async {
-    token = await userRepo.Authenticate("admin", "Admin_12345");
-    signInWithGoogle().then((user) async => {});
-  }
-
-  Widget loginButton() {
-    // ignore: deprecated_member_use
-    return OutlinedButton(
-        onPressed: this.click,
-        style: ButtonStyle(
-          shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-              RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  side: BorderSide(color: Colors.grey))),
-        ),
-        child: Container(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(0, 10, 0, 10),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: const <Widget>[
-                Padding(
-                  padding: EdgeInsets.only(left: 10),
-                  child: Text(
-                    'سجل مع Google',
-                    style: TextStyle(color: Colors.grey, fontSize: 25),
-                  ),
-                ),
-                Image(image: AssetImage('assets/google_logo.png'), height: 35),
-              ],
-            ),
-          ),
-        ));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-        color: Colors.white,
-        child: Center(
-            child: Column(
-          children: <Widget>[
-            SizedBox(height: 200),
-            Text(
-              "Deal With Past",
-              style: TextStyle(color: Colors.black, fontSize: 45),
-            ),
-            SizedBox(height: 120),
-            Container(child: loginButton()),
-            SizedBox(height: 30),
-            Container(
-                // ignore: deprecated_member_use
-                child: OutlinedButton(
-              style: ButtonStyle(
-                shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-                    RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                        side: BorderSide(color: Colors.grey))),
-              ),
-              child: Container(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(25, 15, 25, 15),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: const <Widget>[
-                      Padding(
-                        padding: EdgeInsets.fromLTRB(35, 0, 35, 0),
-                        child: Text(
-                          'أكمل كضيف',
-                          style: TextStyle(color: Colors.grey, fontSize: 25),
-                        ),
-                      )
-                    ],
-                  ),
-                ),
-              ),
-              onPressed: () {
-                Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => WelcomePageGuest(),
-                    ));
-              },
-            )),
-          ],
-        )));
+  try {
+    final user = await signInWithGoogle();
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم إلغاء تسجيل الدخول')),
+      );
+      return;
+    }
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const WelcomePage()),
+    );
+  } on FirebaseAuthException catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('فشل تسجيل الدخول: ${e.code}')),
+    );
+  } on TimeoutException {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('انتهت المهلة. تحقق من الاتصال.')),
+    );
+  } catch (_) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('حدث خطأ غير متوقع')),
+    );
   }
 }
