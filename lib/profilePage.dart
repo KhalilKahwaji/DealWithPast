@@ -9,6 +9,9 @@ import 'package:interactive_map/Homepages/mainPageGuest.dart';
 import 'Backend/auth.dart';
 import 'Repos/UserInfo.dart';
 import 'Repos/UserRepo.dart';
+import 'Repos/LevelSystem.dart';
+import 'widgets/LegacyPreviewCard.dart';
+import 'Missions/missions.dart';
 
 // ignore: must_be_immutable
 class Profile extends StatefulWidget {
@@ -39,15 +42,14 @@ class _ProfileState extends State<Profile> {
         body: SingleChildScrollView(
       child: Column(children: <Widget>[
         Container(
-          // color: Color(0xFF31302D),
           height: MediaQuery.of(context).size.height * 0.23,
           decoration: BoxDecoration(
               gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Colors.yellow.shade200,
-              Colors.blue.shade300,
+              Color(0xFF4A7C59), // Cedar Green
+              Color(0xFF3A6849), // Darker Cedar Green
             ],
           )),
           child: Padding(
@@ -83,8 +85,8 @@ class _ProfileState extends State<Profile> {
           ),
         ),
         Container(
-          height: MediaQuery.of(context).size.height * 0.67,
           color: Color(0xFF252422),
+          padding: EdgeInsets.only(bottom: 20),
           child: Column(
             children: [
               SizedBox(
@@ -170,13 +172,15 @@ class _ProfileState extends State<Profile> {
                   SizedBox(
                     height: 30,
                   ),
+
+                  // Sign out button
                   Container(
                       width: 220,
                       padding: EdgeInsets.fromLTRB(0, 0, 30, 0),
                       child: ElevatedButton(
                           style: ButtonStyle(
                               backgroundColor: MaterialStateProperty.all<Color>(
-                                  Color(0xFF2F69BC))),
+                                  Color(0xFF4A7C59))), // Cedar Green
                           onPressed: () async {
                             await signOut();
                             Navigator.pushReplacement(
@@ -196,6 +200,28 @@ class _ProfileState extends State<Profile> {
                               )))),
                 ],
               ),
+
+              SizedBox(height: 30),
+
+              // Legacy Preview Card
+              LegacyPreviewCard(
+                currentLevel: Level.getLevelFromStoryCount(0), // TODO: Fetch real story count
+                totalStories: 0, // TODO: Fetch from API
+                totalMissions: 0, // TODO: Fetch from API
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MissionsPage(
+                        token: null, // TODO: Pass token
+                        userId: null, // TODO: Pass userId
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+              SizedBox(height: 20),
             ],
           ),
         ),

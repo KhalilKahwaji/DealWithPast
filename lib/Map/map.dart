@@ -48,7 +48,7 @@ class _MapPage extends State<MapPage> {
   MissionRepo missionRepo = MissionRepo();
   static const _initialCameraPosition =
       CameraPosition(target: LatLng(33.8547, 35.9623), zoom: 8.5, bearing: 10);
-  late GoogleMapController _controller;
+  GoogleMapController? _controller;
   List<Story> stories = [];
   List<Map<String, dynamic>> missions = [];
   bool missionsLoading = true;
@@ -178,8 +178,10 @@ class _MapPage extends State<MapPage> {
       allMarkers.clear();
     });
 
+    if (_controller == null) return; // Don't update markers if map not created yet
+
     if (viewMode == 'stories') {
-      mapCreated(_controller);
+      mapCreated(_controller!);
     } else if (viewMode == 'missions') {
       loadMissionMarkers();
     }
@@ -486,27 +488,29 @@ class _MapPage extends State<MapPage> {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _controller.setMapStyle("[]");
+    if (state == AppLifecycleState.resumed && _controller != null) {
+      _controller!.setMapStyle("[]");
     }
   }
 
   @override
   void dispose() {
     super.dispose();
-    _controller.dispose();
+    _controller?.dispose();
   }
 
   Future<void> _goToLoc() async {
-    // final GoogleMapController controller = await _controller;
-    _controller.animateCamera(
-        CameraUpdate.newLatLngZoom(LatLng(currLat, currLng), 12));
+    if (_controller != null) {
+      _controller!.animateCamera(
+          CameraUpdate.newLatLngZoom(LatLng(currLat, currLng), 12));
+    }
   }
 
   Future<void> _goToAll() async {
-    // final GoogleMapController controller = await _controller;
-    _controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
-        target: LatLng(33.8547, 35.8623), zoom: 8.5, bearing: 10)));
+    if (_controller != null) {
+      _controller!.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
+          target: LatLng(33.8547, 35.8623), zoom: 8.5, bearing: 10)));
+    }
   }
 
   void mapCreated(controller) {
