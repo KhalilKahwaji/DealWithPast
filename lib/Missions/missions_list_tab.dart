@@ -309,20 +309,6 @@ class _MissionsListTabState extends State<MissionsListTab> {
         children: [
           Row(
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF3A3534),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  isCompleted ? Icons.emoji_events : Icons.menu_book,
-                  color: Color(isCompleted ? 0xFFD4AF37 : 0xFFE8A99C),
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -352,6 +338,20 @@ class _MissionsListTabState extends State<MissionsListTab> {
                       ],
                     ),
                   ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3A3534),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  isCompleted ? Icons.emoji_events : Icons.menu_book,
+                  color: Color(isCompleted ? 0xFFD4AF37 : 0xFFE8A99C),
+                  size: 24,
                 ),
               ),
             ],

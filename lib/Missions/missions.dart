@@ -68,9 +68,9 @@ class _MissionsPageState extends State<MissionsPage> {
                 child: Row(
                   children: [
                     _buildPillTab(
-                      label: 'الإرث',
-                      icon: Icons.location_pin,
-                      index: 2,
+                      label: 'المهام',
+                      icon: Icons.track_changes,
+                      index: 0,
                     ),
                     _buildPillTab(
                       label: 'الإنجازات',
@@ -78,9 +78,9 @@ class _MissionsPageState extends State<MissionsPage> {
                       index: 1,
                     ),
                     _buildPillTab(
-                      label: 'المهام',
-                      icon: Icons.track_changes,
-                      index: 0,
+                      label: 'الإرث',
+                      icon: Icons.location_pin,
+                      index: 2,
                     ),
                   ],
                 ),
