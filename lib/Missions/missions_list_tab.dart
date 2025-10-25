@@ -103,7 +103,7 @@ class _MissionsListTabState extends State<MissionsListTab> {
         // FAB button
         Positioned(
           bottom: 100,
-          left: MediaQuery.of(context).size.width / 2 - 35,
+          left: 20,
           child: Container(
             width: 70,
             height: 70,
