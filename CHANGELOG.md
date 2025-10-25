@@ -7,6 +7,15 @@
 
 ## [2025-10-25] - Session 5: Production-Ready Mission Display System
 
+### Added
+- ✅ **Mission Filter Tabs** - DealWithPast/lib/Missions/missions_list_tab.dart:205-245
+  - **كل المهام** (All Missions) - Shows all nearby missions within 50km
+  - **أنشأتها** (Created by Me) - Filters to missions you created
+  - **انضممت إليها** (Joined) - Shows missions you're participating in
+  - Brown active tab (#8B5A5A), icons for each type
+  - Custom empty state messages per tab
+  - Tab order: Right to left (RTL)
+
 ### Changed
 - ✅ **Mission Status Visual System** - DealWithPast/lib/Missions/missions_list_tab.dart
   - **Active Missions:** Book icon (pink #E8A99C) on dark background
@@ -36,10 +45,18 @@
 - Progress calculated from `completion_count / goal_count`
 - Completed state triggers at progress >= 1.0
 
+### Technical Details
+- **Search radius reduced:** 100km → 50km (Lebanon is small)
+- **"Created" filter:** Client-side by creator_id/user_id
+- **"Joined" filter:** Uses `getMyMissions()` API endpoint
+- **"All" filter:** Uses `getNearbyMissions()` with 50km radius
+- Hardcoded to Beirut coordinates (33.8938, 35.5018) until location service integrated
+
 ### Production Ready
 - No placeholders - all data from API
 - Dynamic status detection
 - Flexible tag system
+- Three-way mission filtering
 - Consistent across missions list and map views
 - Ready for live deployment
 
