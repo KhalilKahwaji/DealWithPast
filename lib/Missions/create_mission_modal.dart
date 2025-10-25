@@ -1,6 +1,10 @@
 // ignore_for_file: library_private_types_in_public_api
 
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:place_picker/entities/localization_item.dart';
+import 'package:place_picker/place_picker.dart';
+import 'package:location/location.dart' as locationPerm;
 import '../Repos/MissionRepo.dart';
 
 class CreateMissionModal extends StatefulWidget {
@@ -27,11 +31,19 @@ class _CreateMissionModalState extends State<CreateMissionModal> {
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _fromYearController = TextEditingController();
   final TextEditingController _toYearController = TextEditingController();
+  final TextEditingController _locationController = TextEditingController();
 
   String? _selectedType;
   String? _selectedDifficulty;
   int _descriptionLength = 0;
   bool _isSubmitting = false;
+
+  // Location
+  double? _lat;
+  double? _lng;
+  bool _serviceEnabled = false;
+  locationPerm.PermissionStatus _permissionGranted = locationPerm.PermissionStatus.denied;
+  final location = locationPerm.Location();
 
   @override
   void initState() {
@@ -39,6 +51,56 @@ class _CreateMissionModalState extends State<CreateMissionModal> {
     _descriptionController.addListener(() {
       setState(() => _descriptionLength = _descriptionController.text.length);
     });
+    _checkLocationPermission();
+  }
+
+  void _checkLocationPermission() async {
+    _serviceEnabled = await location.serviceEnabled();
+    if (!_serviceEnabled) {
+      _serviceEnabled = await location.requestService();
+      if (!_serviceEnabled) return;
+    }
+    _permissionGranted = await location.hasPermission();
+    if (_permissionGranted == locationPerm.PermissionStatus.denied) {
+      _permissionGranted = await location.requestPermission();
+    }
+  }
+
+  void _showPlacePicker() async {
+    if (_permissionGranted != locationPerm.PermissionStatus.granted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('يرجى السماح بالوصول إلى الموقع'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      LocationResult result = await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => PlacePicker(
+            "AIzaSyB5IXP-SANsluLrgaAgmqp70kNlHeCa-ps",
+            displayLocation: LatLng(_lat ?? 33.8938, _lng ?? 35.5018),
+            localizationItem: LocalizationItem(
+              languageCode: "ar_lb",
+              tapToSelectLocation: "اختر هذا المكان",
+              findingPlace: "تفتيش...",
+              nearBy: "اماكن مجاورة",
+            ),
+          ),
+        ),
+      );
+
+      setState(() {
+        _locationController.text = result.city?.name ?? result.formattedAddress ?? 'موقع محدد';
+        _lat = result.latLng?.latitude;
+        _lng = result.latLng?.longitude;
+      });
+    } catch (e) {
+      print('Error picking location: $e');
+    }
   }
 
   @override
@@ -47,6 +109,7 @@ class _CreateMissionModalState extends State<CreateMissionModal> {
     _descriptionController.dispose();
     _fromYearController.dispose();
     _toYearController.dispose();
+    _locationController.dispose();
     super.dispose();
   }
 
@@ -255,28 +318,35 @@ class _CreateMissionModalState extends State<CreateMissionModal> {
                       ],
                     ),
                     SizedBox(height: 20),
-                    // Location placeholder
+                    // Location picker
                     _buildLabel('الموقع', required: true, icon: Icons.location_on),
                     SizedBox(height: 8),
-                    Container(
-                      padding: EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Color(0xFFE8DCC8),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Icon(Icons.keyboard_arrow_down, color: Colors.grey),
-                          Text(
-                            'اختر الموقع',
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: Colors.grey.shade600,
-                              fontFamily: 'Tajawal',
+                    GestureDetector(
+                      onTap: _showPlacePicker,
+                      child: Container(
+                        padding: EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Color(0xFFE8DCC8),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Icon(Icons.location_on, color: Color(0xFF8B5A5A)),
+                            Expanded(
+                              child: Text(
+                                _locationController.text.isEmpty ? 'اختر الموقع' : _locationController.text,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: _locationController.text.isEmpty ? Colors.grey.shade600 : Color(0xFF3A3534),
+                                  fontFamily: 'Tajawal',
+                                ),
+                                textAlign: TextAlign.right,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                     SizedBox(height: 40),
@@ -371,6 +441,17 @@ class _CreateMissionModalState extends State<CreateMissionModal> {
       return;
     }
 
+    // Validate location
+    if (_lat == null || _lng == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('يرجى اختيار الموقع'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSubmitting = true);
 
     try {
@@ -382,9 +463,8 @@ class _CreateMissionModalState extends State<CreateMissionModal> {
         'difficulty': _selectedDifficulty,
         'period_from': fromYear,
         'period_to': toYear,
-        // Using default location (Beirut) for now - will be updated when location picker is fixed
-        'lat': 33.8938,
-        'lng': 35.5018,
+        'lat': _lat,
+        'lng': _lng,
       };
 
       // TODO: Replace with actual logged-in user credentials
