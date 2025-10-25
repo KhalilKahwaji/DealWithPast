@@ -5,6 +5,32 @@
 
 ---
 
+## [2025-10-25] - Session 4: Mission Creation API Integration
+
+### Fixed
+- ✅ **Mission Creation Now Saves to Database** - DealWithPast/lib/Missions/create_mission_modal.dart
+  - Implemented actual API call to `MissionRepo.createMission()`
+  - Replaced placeholder with real mission data submission
+  - Added error handling for API failures
+  - Mission list now refreshes after successful creation
+  - **Issue Resolved:** Created missions now appear in missions list
+
+### Changed
+- ✅ **Time Period Input Redesigned** - DealWithPast/lib/Missions/create_mission_modal.dart
+  - Replaced hardcoded period dropdown ('التسعينات', 'الثمانينات', 'السبعينات')
+  - Added two separate year input fields: from_year and to_year
+  - Added year validation (1900-2100 range)
+  - Added range validation (from_year must be ≤ to_year)
+  - Numeric keyboard for easier input
+  - **Issue Resolved:** Time period field now flexible and user-friendly
+
+### Technical Notes
+- Using admin credentials as temporary fallback (TODO: pass actual user credentials)
+- Location defaults to Beirut coordinates (33.8938, 35.5018) until location picker is fixed
+- Mission data structure: title, description, category, difficulty, period_from, period_to, lat, lng
+
+---
+
 ## [2025-10-25] - Session 3: Missions Page Implementation
 
 ### Added
