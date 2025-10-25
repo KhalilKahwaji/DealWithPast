@@ -5,6 +5,20 @@
 
 ---
 
+## [2025-10-25] - Session 6: Location Picker & Full Mission System
+
+### Fixed
+- ✅ **Functional Location Picker** - DealWithPast/lib/Missions/create_mission_modal.dart
+  - Replaced placeholder with working Google Maps PlacePicker
+  - Location permissions handling on modal open
+  - Displays selected location name
+  - Stores lat/lng coordinates
+  - Validates location before submission
+  - No longer hardcoded to Beirut - missions created at real locations
+  - Uses same Google Maps API key as story creation
+
+---
+
 ## [2025-10-25] - Session 5: Production-Ready Mission Display System
 
 ### Fixed
