@@ -1,7 +1,8 @@
-// ignore_for_file: file_names, library_private_types_in_public_api
+// ignore_for_file: library_private_types_in_public_api
 
 import 'package:flutter/material.dart';
 import '../Repos/MissionRepo.dart';
+import 'create_mission_modal.dart';
 
 class MissionsListTab extends StatefulWidget {
   final String? token;
@@ -14,13 +15,19 @@ class MissionsListTab extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<MissionsListTab> createState() => _MissionsListTabState();
+  _MissionsListTabState createState() => _MissionsListTabState();
 }
 
 class _MissionsListTabState extends State<MissionsListTab> {
-  List<Map<String, dynamic>> missions = [];
-  bool isLoading = true;
   final MissionRepo _missionRepo = MissionRepo();
+
+  List<Map<String, dynamic>> _missions = [];
+  List<Map<String, dynamic>> _filteredMissions = [];
+  bool _isLoading = true;
+
+  // Filter states
+  String _sortBy = 'newest';
+  String? _difficultyFilter;
 
   @override
   void initState() {
@@ -29,110 +36,109 @@ class _MissionsListTabState extends State<MissionsListTab> {
   }
 
   Future<void> _loadMissions() async {
-    setState(() => isLoading = true);
+    setState(() => _isLoading = true);
 
     try {
-      // TODO: Fetch missions from API
-      // For now, showing placeholder
-      // Future implementation could fetch:
-      // - Nearby missions
-      // - User's participated missions
-      // - Featured missions
+      final response = await _missionRepo.getNearbyMissions(
+        33.8938,
+        35.5018,
+        radius: 100,
+        token: widget.token,
+      );
 
-      // Example API call:
-      // missions = await _missionRepo.getNearbyMissions(
-      //   latitude: userLatitude,
-      //   longitude: userLongitude,
-      //   radius: 50000,
-      // );
-
-      setState(() => isLoading = false);
+      if (response != null && response['missions'] != null) {
+        setState(() {
+          _missions = List<Map<String, dynamic>>.from(response['missions']);
+          _filteredMissions = List.from(_missions);
+          _isLoading = false;
+        });
+        _applyFilters();
+      } else {
+        setState(() => _isLoading = false);
+      }
     } catch (e) {
       print('Error loading missions: $e');
-      setState(() => isLoading = false);
+      setState(() => _isLoading = false);
     }
+  }
+
+  void _applyFilters() {
+    List<Map<String, dynamic>> filtered = List.from(_missions);
+
+    if (_difficultyFilter != null) {
+      filtered = filtered.where((m) => m['difficulty'] == _difficultyFilter).toList();
+    }
+
+    switch (_sortBy) {
+      case 'newest':
+        filtered.sort((a, b) => (b['created_at'] ?? '').compareTo(a['created_at'] ?? ''));
+        break;
+      case 'popular':
+        filtered.sort((a, b) => (b['completion_count'] ?? 0).compareTo(a['completion_count'] ?? 0));
+        break;
+    }
+
+    setState(() => _filteredMissions = filtered);
   }
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC9A961)), // Gold color
+    return Stack(
+      children: [
+        // Mission list
+        if (_isLoading)
+          const Center(child: CircularProgressIndicator(color: Color(0xFF5A7C59)))
+        else
+          RefreshIndicator(
+            onRefresh: _loadMissions,
+            color: const Color(0xFF5A7C59),
+            child: _filteredMissions.isEmpty
+              ? _buildEmptyState()
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
+                  itemCount: _filteredMissions.length,
+                  itemBuilder: (context, index) => _buildMissionCard(_filteredMissions[index]),
+                ),
+          ),
+        // FAB button
+        Positioned(
+          bottom: 20,
+          right: 20,
+          child: FloatingActionButton(
+            backgroundColor: Color(0xFF8B4513),
+            child: Icon(Icons.add, color: Colors.white, size: 32),
+            onPressed: () => _showCreateMissionModal(context),
+          ),
         ),
-      );
-    }
-
-    if (missions.isEmpty) {
-      return _buildEmptyState();
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadMissions,
-      color: const Color(0xFFC9A961), // Gold color
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: missions.length,
-        itemBuilder: (context, index) {
-          return _buildMissionCard(missions[index]);
-        },
-      ),
+      ],
     );
+  }
+
+  void _showCreateMissionModal(BuildContext context) async {
+    final result = await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => CreateMissionModal(token: widget.token),
+    );
+    if (result == true) {
+      _loadMissions();
+    }
   }
 
   Widget _buildEmptyState() {
     return Center(
       child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.explore_outlined,
-            size: 64,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          const Text(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: const [
+          Icon(Icons.explore_outlined, size: 64, color: Colors.grey),
+          SizedBox(height: 16),
+          Text(
             'لا توجد مهام حالياً',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF1F2937),
-              fontFamily: 'Baloo',
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'استكشف الخريطة لإيجاد مهام قريبة منك',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-              fontFamily: 'Baloo',
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () {
-              // Navigate to map
-              Navigator.pop(context);
-            },
-            icon: const Icon(Icons.map, size: 20),
-            label: const Text(
-              'افتح الخريطة',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                fontFamily: 'Baloo',
-              ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF8B4555), // Burgundy button
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              fontFamily: 'Tajawal',
             ),
           ),
         ],
@@ -141,119 +147,150 @@ class _MissionsListTabState extends State<MissionsListTab> {
   }
 
   Widget _buildMissionCard(Map<String, dynamic> mission) {
-    final String title = mission['title'] ?? 'بدون عنوان';
-    final String description = mission['description'] ?? '';
-    final String? creatorName = mission['creator_name'];
-    final String? creatorAvatar = mission['creator_avatar'];
-    final int storyCount = mission['story_count'] ?? 0;
-    final int targetStories = mission['target_stories'] ?? 0;
+    final title = mission['title'] ?? 'مهمة';
+    final category = mission['category'] ?? 'social';
+    final difficulty = mission['difficulty'] ?? 'medium';
+    final completionCount = mission['completion_count'] ?? 0;
+    final goalCount = mission['goal_count'] ?? 10;
+    final progress = goalCount > 0 ? completionCount / goalCount : 0.0;
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1A000000),
+            blurRadius: 3,
+            offset: Offset(0, 1),
+          ),
+        ],
       ),
-      elevation: 2,
-      child: InkWell(
-        onTap: () {
-          // TODO: Navigate to mission details
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Row(
             children: [
-              // Mission title
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1F2937),
-                  fontFamily: 'Baloo',
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: category == 'social' ? const Color(0xFF5A7C59) : const Color(0xFF9C27B0),
+                  shape: BoxShape.circle,
                 ),
-                textAlign: TextAlign.right,
+                child: const Icon(Icons.flag, color: Colors.white, size: 24),
               ),
-
-              if (description.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  description,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF6B7280),
-                    fontFamily: 'Baloo',
-                  ),
-                  textAlign: TextAlign.right,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-
-              const SizedBox(height: 12),
-
-              // Progress bar
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '$storyCount/$targetStories قصة',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF4A7C59),
-                          fontFamily: 'Baloo',
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: targetStories > 0 ? storyCount / targetStories : 0,
-                      backgroundColor: const Color(0xFFE5E7EB),
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        Color(0xFF4A7C59),
-                      ),
-                      minHeight: 6,
-                    ),
-                  ),
-                ],
-              ),
-
-              // Creator info
-              if (creatorName != null) ...[
-                const SizedBox(height: 12),
-                Row(
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    CircleAvatar(
-                      radius: 16,
-                      backgroundImage: creatorAvatar != null
-                          ? NetworkImage(creatorAvatar)
-                          : null,
-                      child: creatorAvatar == null
-                          ? const Icon(Icons.person, size: 16)
-                          : null,
-                    ),
-                    const SizedBox(width: 8),
                     Text(
-                      creatorName,
+                      title,
+                      textAlign: TextAlign.right,
                       style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF6B7280),
-                        fontFamily: 'Baloo',
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'Tajawal',
                       ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        _buildDifficultyBadge(difficulty),
+                        const SizedBox(width: 8),
+                        _buildCategoryBadge(category),
+                      ],
                     ),
                   ],
                 ),
-              ],
+              ),
             ],
           ),
+          const SizedBox(height: 16),
+          Container(
+            height: 8,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: FractionallySizedBox(
+              alignment: Alignment.centerRight,
+              widthFactor: progress.clamp(0.0, 1.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF5A7C59),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '$completionCount / $goalCount قصص',
+            style: const TextStyle(
+              fontSize: 13,
+              fontFamily: 'Tajawal',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryBadge(String category) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: category == 'social' ? const Color(0xFF5A7C59) : const Color(0xFF9C27B0),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        category == 'social' ? 'اجتماعية' : 'شخصية',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          fontFamily: 'Tajawal',
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDifficultyBadge(String difficulty) {
+    Color color;
+    String label;
+
+    switch (difficulty) {
+      case 'easy':
+        color = Colors.green;
+        label = 'سهل';
+        break;
+      case 'hard':
+        color = Colors.red;
+        label = 'صعب';
+        break;
+      default:
+        color = Colors.orange;
+        label = 'متوسط';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          fontFamily: 'Tajawal',
         ),
       ),
     );

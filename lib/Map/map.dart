@@ -1173,11 +1173,18 @@ class _MapPage extends State<MapPage> {
             child: Container(
               height: MediaQuery.of(context).size.height * 0.8, // 80% of screen height
               decoration: BoxDecoration(
-                color: Color(0xFF252422),
+                color: Colors.white,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(25),
                   topRight: Radius.circular(25),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 20,
+                    offset: Offset(0, -5),
+                  ),
+                ],
               ),
               child: Column(
                 children: [
@@ -1185,7 +1192,7 @@ class _MapPage extends State<MapPage> {
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                     decoration: BoxDecoration(
-                      color: Color(0xFF4CAF50),
+                      color: Color(0xFFF5F0E8),
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(25),
                         topRight: Radius.circular(25),
@@ -1199,15 +1206,15 @@ class _MapPage extends State<MapPage> {
                               showMissionPage = false;
                             });
                           },
-                          icon: Icon(Icons.close, color: Colors.white, size: 28),
+                          icon: Icon(Icons.close, color: Color(0xFF3A3534), size: 28),
                         ),
                         SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             mainMission?['title'] ?? 'مهمة',
                                     style: TextStyle(
-                                      fontFamily: 'Baloo',
-                                      color: Colors.white,
+                                      fontFamily: 'Tajawal',
+                                      color: Color(0xFF3A3534),
                                       fontSize: 20,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -1246,9 +1253,9 @@ class _MapPage extends State<MapPage> {
                                                 : 'صعب',
                                         style: TextStyle(
                                           color: Colors.white,
-                                          fontFamily: 'Baloo',
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
+                                          fontFamily: 'Tajawal',
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                     ),
@@ -1295,10 +1302,10 @@ class _MapPage extends State<MapPage> {
                                   Text(
                                     _stripHtmlTags(mainMission?['description'] ?? 'لا يوجد وصف'),
                                     style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 17,
-                                      fontFamily: 'Baloo',
-                                      height: 1.8,
+                                      color: Colors.grey.shade700,
+                                      fontSize: 15,
+                                      fontFamily: 'Tajawal',
+                                      height: 1.62,
                                     ),
                                     textAlign: TextAlign.right,
                                   ),
@@ -1319,9 +1326,9 @@ class _MapPage extends State<MapPage> {
                                         child: Text(
                                           mainMission?['address'] ?? 'موقع المهمة',
                                           style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 16,
-                                            fontFamily: 'Baloo',
+                                            color: Color(0xFF3A3534),
+                                            fontSize: 14,
+                                            fontFamily: 'Tajawal',
                                           ),
                                           maxLines: 2,
                                           overflow: TextOverflow.ellipsis,
@@ -1345,10 +1352,10 @@ class _MapPage extends State<MapPage> {
                                       Text(
                                         '${mainMission?['reward_points'] ?? 0} نقطة مكافأة',
                                         style: TextStyle(
-                                          color: Color(0xFFFFDE73),
-                                          fontSize: 18,
-                                          fontFamily: 'Baloo',
-                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF3A3534),
+                                          fontSize: 14,
+                                          fontFamily: 'Tajawal',
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                     ],
@@ -1362,10 +1369,10 @@ class _MapPage extends State<MapPage> {
                                       Text(
                                         '${mainMission?['completion_count'] ?? 0}/${mainMission?['goal_count'] ?? 0} قصص',
                                         style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontFamily: 'Baloo',
-                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF3A3534),
+                                          fontSize: 14,
+                                          fontFamily: 'Tajawal',
+                                          fontWeight: FontWeight.w600,
                                         ),
                                         textAlign: TextAlign.right,
                                       ),
@@ -1375,7 +1382,7 @@ class _MapPage extends State<MapPage> {
                                         width: double.infinity,
                                         height: 8,
                                         decoration: BoxDecoration(
-                                          color: Colors.grey.shade800,
+                                          color: Colors.grey.shade300,
                                           borderRadius: BorderRadius.circular(4),
                                         ),
                                         child: FractionallySizedBox(
