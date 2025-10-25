@@ -5,6 +5,106 @@
 
 ---
 
+## [2025-10-25] - Session 7: Login & Guest UX Strategy Implementation
+
+### Added
+- ✅ **First-Launch Welcome Dialog** - DealWithPast/lib/widgets/WelcomeDialog.dart (NEW - 212 lines)
+  - Beautiful onboarding screen shown only on first app launch
+  - Uses SharedPreferences to track 'has_seen_welcome' flag
+  - Gradient background (beige to white) with app logo
+  - App title "خارطة وذاكرة" with welcome message
+  - Description: "اكتشف قصص لبنان وشارك بذكرياتك"
+  - Two CTAs: "تسجيل الدخول بـ Google" (login) and "استكشف كضيف" (guest)
+  - Static methods: `isFirstLaunch()`, `markWelcomeShown()`, `showIfFirstLaunch()`
+  - Integrated in mainPageGuest.dart via WidgetsBinding.addPostFrameCallback
+
+- ✅ **Improved Login Dialog** - DealWithPast/lib/widgets/ImprovedLoginDialog.dart (NEW - 157 lines)
+  - Reusable login prompt component with better UX
+  - Shows benefits list: احفظ ذكرياتك وقصصك, شارك في المهام الجماعية, اربح نقاط وشارات
+  - Each benefit with icon (auto_stories, people, emoji_events)
+  - Clean Google Sign-In button with icon
+  - "متابعة كضيف" (Continue as guest) option
+  - Gradient lock icon at top (green-brown blend)
+  - Static `show()` method returns bool - true if user wants to login
+
+- ✅ **Login Button in Top Bar for Guests** - DealWithPast/lib/widgets/app_bottom_nav.dart
+  - Added `isGuest` parameter to AppBottomNavScaffold (default: false)
+  - Gradient icon button in AppBar actions (top-right position)
+  - Uses same gradient as Speed Dial FAB: Color(0xFF5A7C59) → Color(0xFF8B5A5A)
+  - IconButton with gradient container background
+  - Tooltip: "تسجيل الدخول"
+  - Navigates to LoginPage on tap
+  - Only visible when isGuest = true
+
+- ✅ **Speed Dial FAB on Map Page** - DealWithPast/lib/Map/map.dart
+  - Expandable gradient FAB button (green-brown blend)
+  - Main button: Animated + to × rotation on expand
+  - Two mini-FABs slide up when expanded:
+    - "إضافة قصة" (Create Story) - Pink (#E8A99C)
+    - "إنشاء مهمة" (Create Mission) - Brown (#8B5A5A)
+  - Semi-transparent backdrop overlay when expanded
+  - Both actions have login gates - shows ImprovedLoginDialog if not authenticated
+
+### Changed
+- ✅ **WelcomePageGuest Widget** - DealWithPast/lib/Homepages/mainPageGuest.dart
+  - Converted from StatelessWidget to StatefulWidget
+  - Added WelcomeDialog import and integration
+  - Calls WelcomeDialog.showIfFirstLaunch() in initState via addPostFrameCallback
+  - Added `isGuest: true` parameter to AppBottomNavScaffold
+
+- ✅ **Join Mission Login Gate** - DealWithPast/lib/Missions/missions_list_tab.dart
+  - Participate button now checks FirebaseAuth.instance.currentUser
+  - Shows ImprovedLoginDialog if user not logged in
+  - Navigates to LoginPage if user wants to login
+  - Returns early if user cancels dialog (continues as guest)
+  - Only allows authenticated users to join missions
+
+### Dependencies
+- ✅ **Added shared_preferences: ^2.0.15** to pubspec.yaml
+  - For tracking first-launch state
+  - Successfully installed with flutter pub get
+
+### Files Created
+- `lib/widgets/WelcomeDialog.dart` - First-launch welcome screen
+- `lib/widgets/ImprovedLoginDialog.dart` - Reusable login prompt
+
+### Files Modified
+- `lib/Missions/missions_list_tab.dart` - Join mission login gate
+- `lib/Map/map.dart` - Speed Dial FAB with login gates
+- `lib/Homepages/mainPageGuest.dart` - Welcome dialog integration + isGuest flag
+- `lib/widgets/app_bottom_nav.dart` - Login button in top bar + isGuest parameter
+- `pubspec.yaml` - shared_preferences dependency
+
+### UX Strategy
+- ✅ **Guest Limitation Model Enforced:**
+  - Guests can browse: stories, missions, map, gallery, profile stats
+  - Guests CANNOT: create stories, create missions, join missions
+  - All "create/join" actions show login prompt first
+  - Clear benefits messaging: "Save memories, Join missions, Earn badges"
+
+- ✅ **First-Time User Experience:**
+  - Welcome dialog appears ONCE on first launch
+  - Users choose: Login with Google OR Continue as guest
+  - SharedPreferences tracks 'has_seen_welcome' = true after first view
+  - Dialog is dismissible and won't appear again
+
+- ✅ **Persistent Login Access:**
+  - Login button always visible in top bar for guests
+  - Matches app gradient theme (visible but not intrusive)
+  - Easy access to authentication at any time
+
+### Design System
+- All components follow gradient color scheme:
+  - Primary: Color(0xFF5A7C59) green
+  - Secondary: Color(0xFF8B5A5A) brown
+  - Background: Color(0xFFF5F0E8) beige
+  - Text: Color(0xFF3A3534) dark brown
+- Consistent button styling, padding, and border radius
+- Arabic RTL layout with Tajawal/Baloo fonts
+- All login CTAs use same "تسجيل الدخول بـ Google" text
+
+---
+
 ## [2025-10-25] - Session 6: Location Picker & Full Mission System
 
 ### Fixed
