@@ -8,11 +8,17 @@
 ## [2025-10-25] - Session 5: Production-Ready Mission Display System
 
 ### Fixed
-- ✅ **RTL Layout Corrections**
-  - **Mission cards:** Icon moved from left to right side (proper RTL)
-  - **Main tabs:** Order corrected to المهام، الإنجازات، الإرث (Missions, Achievements, Legacy)
-  - Text content left-aligned, icon right-aligned
-  - All text remains right-aligned (Arabic RTL standard)
+- ✅ **Mission Cards Match Figma Design**
+  - **Icon on LEFT side** (book/trophy icons)
+  - **Title and badges on RIGHT** (right-aligned text)
+  - **Progress bar fills LEFT to RIGHT** (LTR, not RTL)
+  - **Removed "8/10 قصص" text** (cleaner design)
+  - Gold trophy (#D4AF37) for completed missions
+  - Pink book (#E8A99C) for active missions
+
+- ✅ **Main Tabs Order Corrected**
+  - Order: المهام، الإنجازات، الإرث (Missions, Achievements, Legacy)
+  - Proper left-to-right sequence for RTL display
 
 ### Added
 - ✅ **Mission Filter Tabs** - DealWithPast/lib/Missions/missions_list_tab.dart:205-245
