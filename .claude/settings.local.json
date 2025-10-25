@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/ziadf/Documents/Projects/UNDP/**)",
+      "Bash(dir \"C:\\Users\\ziadf\\Documents\\Projects\\UNDP\" /B)",
+      "Bash(flutter pub get:*)",
+      "Bash(test:*)",
+      "Read(//c/Users/ziadf/**)",
+      "Read(//c//**)",
+      "Bash(\"C:\\development\\flutter\\bin\\flutter.bat\" pub get)",
+      "Bash(\"C:\\development\\flutter\\bin\\flutter.bat\" build apk --debug)",
+      "Bash(\"C:\\development\\flutter\\bin\\flutter.bat\" clean)",
+      "Bash(\"C:\\development\\flutter\\bin\\flutter.bat\" analyze)",
+      "Bash(\"C:\\development\\flutter\\bin\\flutter.bat\" analyze --no-pub)",
+      "Bash(\"C:\\development\\flutter\\bin\\flutter.bat\" analyze lib/Map/map.dart --no-pub)",
+      "Bash(\"C:\\development\\flutter\\bin\\flutter.bat\" analyze lib/Missions/ --no-pub)",
+      "Bash(\"C:\\development\\flutter\\bin\\flutter.bat\" doctor)",
+      "Bash(\"C:\\development\\flutter\\bin\\flutter.bat\" devices)",
+      "Bash(\"C:\\development\\flutter\\bin\\flutter.bat\" run -d emulator-5554)",
+      "Bash(if exist .gradle rmdir /s /q .gradle)",
+      "Bash(if exist build rmdir /s /q build)",
+      "Bash(if exist appbuild rmdir /s /q appbuild)",
+      "Bash(xmllint:*)",
+      "Bash(cat:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\n[Feature] Complete gamification system implementation\n\nMajor Changes:\n- Implement full 3-tab Missions page (المهام, الإنجازات, الإرث)\n- Add badge system with 12 achievements (Foundation, Community, Legacy)\n- Add 4-level progression system (متابع, مساهم, سفير, شريك مؤسس)\n- Create all gamification UI widgets (12 widgets)\n- Update Profile page with Cedar Green theme and Legacy preview card\n- Fix map black screen issue (permissions + nullable controller)\n\nColor Theme Updates:\n- Missions page: Gold/tan app bar (#C9A961) with beige background (#F5F5DC)\n- Profile page: Cedar Green header (#4A7C59) with dark background (#252422)\n- Burgundy action buttons (#8B4555) in missions\n\nNew Files:\n- lib/Missions/: missions_list_tab, achievements_tab, legacy_tab\n- lib/Repos/: BadgeClass, BadgeRepo (12 badges), LevelSystem (4 levels)\n- lib/widgets/: 12 gamification widgets (badges, levels, legacy cards)\n- Documentation: TESTING_GUIDE, BADGE_HIERARCHY, PLACEHOLDER_SYSTEM\n- assets/badges/: Folder structure for badge icons\n\nBug Fixes:\n- Map crashes: Changed GoogleMapController to nullable with safety checks\n- Android permissions: Added INTERNET and ACCESS_FINE_LOCATION\n- Badge naming conflict: Used import alias to avoid Flutter Badge collision\n\nDependencies:\n- Added share_plus ^4.5.0 for legacy sharing functionality\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git commit:*)",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)",
+      "Bash(git log:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

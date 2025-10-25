@@ -173,6 +173,17 @@ class _MissionsListTabState extends State<MissionsListTab> {
     final completionCount = mission['completion_count'] ?? 0;
     final goalCount = mission['goal_count'] ?? 10;
     final progress = goalCount > 0 ? completionCount / goalCount : 0.0;
+    final isCompleted = progress >= 1.0;
+
+    // Get tags from mission data (could be array or single value)
+    final tags = <String>[];
+    if (mission['tags'] != null) {
+      if (mission['tags'] is List) {
+        tags.addAll((mission['tags'] as List).map((e) => e.toString()));
+      } else {
+        tags.add(mission['tags'].toString());
+      }
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -197,10 +208,14 @@ class _MissionsListTabState extends State<MissionsListTab> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: category == 'social' ? const Color(0xFF5A7C59) : const Color(0xFF9C27B0),
+                  color: const Color(0xFF3A3534),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.flag, color: Colors.white, size: 24),
+                child: Icon(
+                  isCompleted ? Icons.emoji_events : Icons.menu_book,
+                  color: Color(isCompleted ? 0xFFD4AF37 : 0xFFE8A99C),
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -217,12 +232,18 @@ class _MissionsListTabState extends State<MissionsListTab> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
+                    Wrap(
+                      alignment: WrapAlignment.end,
+                      spacing: 6,
+                      runSpacing: 6,
                       children: [
+                        if (isCompleted)
+                          _buildBadge('مكتملة', const Color(0xFFD4AF37)),
                         _buildDifficultyBadge(difficulty),
-                        const SizedBox(width: 8),
-                        _buildCategoryBadge(category),
+                        if (tags.isNotEmpty)
+                          ...tags.map((tag) => _buildBadge(tag, const Color(0xFF8B5A5A)))
+                        else
+                          _buildCategoryBadge(category),
                       ],
                     ),
                   ],
@@ -242,7 +263,7 @@ class _MissionsListTabState extends State<MissionsListTab> {
               widthFactor: progress.clamp(0.0, 1.0),
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF5A7C59),
+                  color: isCompleted ? const Color(0xFF8B5A5A) : const Color(0xFF5A7C59),
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
@@ -257,6 +278,25 @@ class _MissionsListTabState extends State<MissionsListTab> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBadge(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          fontFamily: 'Tajawal',
+        ),
       ),
     );
   }

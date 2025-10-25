@@ -1232,32 +1232,83 @@ class _MapPage extends State<MapPage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Difficulty Badge
+                                  // Status and Difficulty Badges
                                   Align(
                                     alignment: Alignment.centerRight,
-                                    child: Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                      decoration: BoxDecoration(
-                                        color: (mainMission?['difficulty'] == 'easy')
-                                            ? Colors.green
-                                            : (mainMission?['difficulty'] == 'medium')
-                                                ? Colors.orange
-                                                : Colors.red,
-                                        borderRadius: BorderRadius.circular(25),
-                                      ),
-                                      child: Text(
-                                        (mainMission?['difficulty'] == 'easy')
-                                            ? 'سهل'
-                                            : (mainMission?['difficulty'] == 'medium')
-                                                ? 'متوسط'
-                                                : 'صعب',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontFamily: 'Tajawal',
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
+                                    child: Wrap(
+                                      alignment: WrapAlignment.end,
+                                      spacing: 8,
+                                      children: [
+                                        // Completed badge
+                                        if (_calculateProgress(
+                                                  mainMission?['completion_count'],
+                                                  mainMission?['goal_count'],
+                                                ) >= 1.0)
+                                          Container(
+                                            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                            decoration: BoxDecoration(
+                                              color: Color(0xFFD4AF37),
+                                              borderRadius: BorderRadius.circular(25),
+                                            ),
+                                            child: Text(
+                                              'مكتملة',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontFamily: 'Tajawal',
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        // Difficulty badge
+                                        Container(
+                                          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                          decoration: BoxDecoration(
+                                            color: (mainMission?['difficulty'] == 'easy')
+                                                ? Colors.green
+                                                : (mainMission?['difficulty'] == 'medium')
+                                                    ? Colors.orange
+                                                    : Colors.red,
+                                            borderRadius: BorderRadius.circular(25),
+                                          ),
+                                          child: Text(
+                                            (mainMission?['difficulty'] == 'easy')
+                                                ? 'سهل'
+                                                : (mainMission?['difficulty'] == 'medium')
+                                                    ? 'متوسط'
+                                                    : 'صعب',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontFamily: 'Tajawal',
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                        // Tags
+                                        if (mainMission?['tags'] != null)
+                                          ...(mainMission!['tags'] is List
+                                                  ? (mainMission!['tags'] as List)
+                                                  : [mainMission!['tags']])
+                                              .map((tag) => Container(
+                                                    padding: EdgeInsets.symmetric(
+                                                        horizontal: 20, vertical: 10),
+                                                    decoration: BoxDecoration(
+                                                      color: Color(0xFF8B5A5A),
+                                                      borderRadius: BorderRadius.circular(25),
+                                                    ),
+                                                    child: Text(
+                                                      tag.toString(),
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontFamily: 'Tajawal',
+                                                        fontSize: 14,
+                                                        fontWeight: FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ))
+                                              .toList(),
+                                      ],
                                     ),
                                   ),
                                   SizedBox(height: 15),
@@ -1393,7 +1444,12 @@ class _MapPage extends State<MapPage> {
                                           ),
                                           child: Container(
                                             decoration: BoxDecoration(
-                                              color: Color(0xFF4CAF50),
+                                              color: _calculateProgress(
+                                                        mainMission?['completion_count'],
+                                                        mainMission?['goal_count'],
+                                                      ) >= 1.0
+                                                  ? Color(0xFF8B5A5A)
+                                                  : Color(0xFF5A7C59),
                                               borderRadius: BorderRadius.circular(4),
                                             ),
                                           ),
