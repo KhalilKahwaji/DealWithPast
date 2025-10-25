@@ -5,8 +5,15 @@ import '../Repos/MissionRepo.dart';
 
 class CreateMissionModal extends StatefulWidget {
   final String? token;
+  final String? username;
+  final String? password;
 
-  const CreateMissionModal({Key? key, this.token}) : super(key: key);
+  const CreateMissionModal({
+    Key? key,
+    this.token,
+    this.username,
+    this.password,
+  }) : super(key: key);
 
   @override
   _CreateMissionModalState createState() => _CreateMissionModalState();
@@ -18,10 +25,11 @@ class _CreateMissionModalState extends State<CreateMissionModal> {
 
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _fromYearController = TextEditingController();
+  final TextEditingController _toYearController = TextEditingController();
 
   String? _selectedType;
   String? _selectedDifficulty;
-  String? _selectedPeriod;
   int _descriptionLength = 0;
   bool _isSubmitting = false;
 
@@ -37,6 +45,8 @@ class _CreateMissionModalState extends State<CreateMissionModal> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _fromYearController.dispose();
+    _toYearController.dispose();
     super.dispose();
   }
 
@@ -174,20 +184,75 @@ class _CreateMissionModalState extends State<CreateMissionModal> {
                       validator: (v) => v == null ? 'مطلوب' : null,
                     ),
                     SizedBox(height: 20),
-                    // Period
+                    // Period (from/to years)
                     _buildLabel('الفترة الزمنية', required: true, icon: Icons.calendar_today),
                     SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      value: _selectedPeriod,
-                      decoration: _inputDecoration('اختر الفترة الزمنية'),
-                      isExpanded: true,
-                      items: [
-                        'التسعينات (1990-1999)',
-                        'الثمانينات (1980-1989)',
-                        'السبعينات (1970-1979)',
-                      ].map((p) => DropdownMenuItem(value: p, child: Text(p, textAlign: TextAlign.right, style: TextStyle(fontFamily: 'Tajawal')))).toList(),
-                      onChanged: (v) => setState(() => _selectedPeriod = v),
-                      validator: (v) => v == null ? 'مطلوب' : null,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                'إلى سنة',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontFamily: 'Tajawal',
+                                  color: Colors.grey.shade700,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              TextFormField(
+                                controller: _toYearController,
+                                textAlign: TextAlign.center,
+                                keyboardType: TextInputType.number,
+                                style: TextStyle(fontFamily: 'Tajawal', fontSize: 15),
+                                decoration: _inputDecoration('1999'),
+                                validator: (v) {
+                                  if (v == null || v.trim().isEmpty) return 'مطلوب';
+                                  final year = int.tryParse(v);
+                                  if (year == null || year < 1900 || year > 2100) {
+                                    return 'سنة غير صحيحة';
+                                  }
+                                  return null;
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                'من سنة',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontFamily: 'Tajawal',
+                                  color: Colors.grey.shade700,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              TextFormField(
+                                controller: _fromYearController,
+                                textAlign: TextAlign.center,
+                                keyboardType: TextInputType.number,
+                                style: TextStyle(fontFamily: 'Tajawal', fontSize: 15),
+                                decoration: _inputDecoration('1990'),
+                                validator: (v) {
+                                  if (v == null || v.trim().isEmpty) return 'مطلوب';
+                                  final year = int.tryParse(v);
+                                  if (year == null || year < 1900 || year > 2100) {
+                                    return 'سنة غير صحيحة';
+                                  }
+                                  return null;
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                     SizedBox(height: 20),
                     // Location placeholder
@@ -293,19 +358,69 @@ class _CreateMissionModalState extends State<CreateMissionModal> {
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isSubmitting = true);
-
-    // TODO: Implement mission creation with API
-    await Future.delayed(Duration(seconds: 1));
-
-    if (mounted) {
-      Navigator.pop(context, true);
+    // Validate year range
+    final fromYear = int.parse(_fromYearController.text);
+    final toYear = int.parse(_toYearController.text);
+    if (fromYear > toYear) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('تم إنشاء المهمة بنجاح'),
-          backgroundColor: Color(0xFF5A7C59),
+          content: Text('سنة البداية يجب أن تكون أقل من أو تساوي سنة النهاية'),
+          backgroundColor: Colors.red,
         ),
       );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      // Prepare mission data
+      final missionData = {
+        'title': _titleController.text.trim(),
+        'description': _descriptionController.text.trim(),
+        'category': _selectedType,
+        'difficulty': _selectedDifficulty,
+        'period_from': fromYear,
+        'period_to': toYear,
+        // Using default location (Beirut) for now - will be updated when location picker is fixed
+        'lat': 33.8938,
+        'lng': 35.5018,
+      };
+
+      // TODO: Replace with actual logged-in user credentials
+      // Currently using admin credentials as temporary fallback
+      // Should be updated to pass user's username and password (uid) from login
+      final username = widget.username ?? 'admin';
+      final password = widget.password ?? 'Admin_12345';
+
+      // Call API
+      await _missionRepo.createMission(
+        missionData,
+        username,
+        password,
+      );
+
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم إنشاء المهمة بنجاح'),
+            backgroundColor: Color(0xFF5A7C59),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error creating mission: $e');
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('حدث خطأ أثناء إنشاء المهمة'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }
