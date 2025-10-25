@@ -21,6 +21,22 @@
   - Proper left-to-right sequence for RTL display
 
 ### Added
+- ✅ **Mission Detail View & Participation** - DealWithPast/lib/Missions/missions_list_tab.dart:530-759
+  - **Full mission detail modal** - Tappable card opens detailed view
+  - **Mission information:** Creator, description, progress, status badges
+  - **Progress display:** Shows count (10/30) and percentage (33%)
+  - **Participation button:** "شارك في المهمة" for non-creator missions
+  - **Smart button logic:** Only shows for active missions not created by user
+  - **API integration:** Calls `startMission()` to join mission
+  - **Auto-refresh:** Mission list updates after joining
+  - **User feedback:** Success/error snackbar messages
+
+- ✅ **Enhanced Mission Cards** - missions_list_tab.dart:283-431
+  - **Progress text:** "10/30" displayed above progress bar
+  - **Contributors count:** "X مساهم" with people icon
+  - **Details link:** "اضغط لعرض التفاصيل" clickable text
+  - **Full card tappable:** Entire card opens detail modal
+
 - ✅ **Mission Filter Tabs** - DealWithPast/lib/Missions/missions_list_tab.dart:205-245
   - **كل المهام** (All Missions) - Shows all nearby missions within 50km
   - **أنشأتها** (Created by Me) - Filters to missions you created
