@@ -102,12 +102,32 @@ class _MissionsListTabState extends State<MissionsListTab> {
           ),
         // FAB button
         Positioned(
-          bottom: 20,
-          right: 20,
-          child: FloatingActionButton(
-            backgroundColor: Color(0xFF8B4513),
-            child: Icon(Icons.add, color: Colors.white, size: 32),
-            onPressed: () => _showCreateMissionModal(context),
+          bottom: 100,
+          left: MediaQuery.of(context).size.width / 2 - 35,
+          child: Container(
+            width: 70,
+            height: 70,
+            decoration: BoxDecoration(
+              color: Color(0xFF8B5A5A),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(35),
+                onTap: () => _showCreateMissionModal(context),
+                child: Center(
+                  child: Icon(Icons.add, color: Colors.white, size: 36),
+                ),
+              ),
+            ),
           ),
         ),
       ],
