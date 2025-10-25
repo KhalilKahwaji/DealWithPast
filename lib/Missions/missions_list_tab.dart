@@ -271,6 +271,15 @@ class _MissionsListTabState extends State<MissionsListTab> {
     );
   }
 
+  void _showMissionDetail(Map<String, dynamic> mission) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _buildMissionDetailModal(mission),
+    );
+  }
+
   Widget _buildMissionCard(Map<String, dynamic> mission) {
     final title = mission['title'] ?? 'مهمة';
     final category = mission['category'] ?? 'social';
@@ -279,6 +288,7 @@ class _MissionsListTabState extends State<MissionsListTab> {
     final goalCount = mission['goal_count'] ?? 10;
     final progress = goalCount > 0 ? completionCount / goalCount : 0.0;
     final isCompleted = progress >= 1.0;
+    final participants = mission['participant_count'] ?? completionCount;
 
     // Get tags from mission data (could be array or single value)
     final tags = <String>[];
@@ -290,7 +300,9 @@ class _MissionsListTabState extends State<MissionsListTab> {
       }
     }
 
-    return Container(
+    return GestureDetector(
+      onTap: () => _showMissionDetail(mission),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -357,6 +369,29 @@ class _MissionsListTabState extends State<MissionsListTab> {
             ],
           ),
           const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'التقدم',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontFamily: 'Tajawal',
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              Text(
+                '$completionCount/$goalCount',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontFamily: 'Tajawal',
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF3A3534),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
           Container(
             height: 8,
             decoration: BoxDecoration(
@@ -374,8 +409,47 @@ class _MissionsListTabState extends State<MissionsListTab> {
               ),
             ),
           ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              GestureDetector(
+                onTap: () => _showMissionDetail(mission),
+                child: Row(
+                  children: [
+                    Icon(Icons.arrow_back, size: 14, color: Color(0xFF8B5A5A)),
+                    SizedBox(width: 4),
+                    Text(
+                      'اضغط لعرض التفاصيل',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF8B5A5A),
+                        fontFamily: 'Tajawal',
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Row(
+                children: [
+                  Text(
+                    '$participants مساهم',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontFamily: 'Tajawal',
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  SizedBox(width: 6),
+                  Icon(Icons.people, size: 16, color: Colors.grey.shade700),
+                ],
+              ),
+            ],
+          ),
         ],
       ),
+    ),
     );
   }
 
@@ -449,6 +523,237 @@ class _MissionsListTabState extends State<MissionsListTab> {
           fontWeight: FontWeight.w500,
           fontFamily: 'Tajawal',
         ),
+      ),
+    );
+  }
+
+  Widget _buildMissionDetailModal(Map<String, dynamic> mission) {
+    final title = mission['title'] ?? 'مهمة';
+    final description = mission['description'] ?? 'لا يوجد وصف';
+    final difficulty = mission['difficulty'] ?? 'medium';
+    final completionCount = mission['completion_count'] ?? 0;
+    final goalCount = mission['goal_count'] ?? 10;
+    final progress = goalCount > 0 ? completionCount / goalCount : 0.0;
+    final isCompleted = progress >= 1.0;
+    final participants = mission['participant_count'] ?? completionCount;
+    final creatorName = mission['creator_name'] ?? 'غير معروف';
+    final isMyMission = mission['creator_id'] == widget.userId || mission['user_id'] == widget.userId;
+
+    // Get tags
+    final tags = <String>[];
+    if (mission['tags'] != null) {
+      if (mission['tags'] is List) {
+        tags.addAll((mission['tags'] as List).map((e) => e.toString()));
+      } else {
+        tags.add(mission['tags'].toString());
+      }
+    }
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.8,
+      decoration: BoxDecoration(
+        color: Color(0xFFF5F0E8),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      child: Column(
+        children: [
+          // Header
+          Container(
+            padding: EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+            ),
+            child: Row(
+              children: [
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(Icons.close, color: Color(0xFF3A3534)),
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontFamily: 'Tajawal',
+                      color: Color(0xFF3A3534),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.right,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Content
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  // Status and badges
+                  Wrap(
+                    alignment: WrapAlignment.end,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (isCompleted)
+                        _buildBadge('مكتملة', Color(0xFFD4AF37)),
+                      _buildDifficultyBadge(difficulty),
+                      if (tags.isNotEmpty)
+                        ...tags.map((tag) => _buildBadge(tag, Color(0xFF8B5A5A))),
+                    ],
+                  ),
+                  SizedBox(height: 20),
+                  // Creator info
+                  Text(
+                    'أنشأ بواسطة: $creatorName',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontFamily: 'Tajawal',
+                      color: Colors.grey.shade600,
+                    ),
+                    textAlign: TextAlign.right,
+                  ),
+                  SizedBox(height: 20),
+                  // Description
+                  Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontFamily: 'Tajawal',
+                      color: Color(0xFF3A3534),
+                      height: 1.6,
+                    ),
+                    textAlign: TextAlign.right,
+                  ),
+                  SizedBox(height: 25),
+                  // Progress
+                  Text(
+                    'التقدم',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontFamily: 'Tajawal',
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF3A3534),
+                    ),
+                    textAlign: TextAlign.right,
+                  ),
+                  SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '$completionCount / $goalCount قصص',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontFamily: 'Tajawal',
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF3A3534),
+                        ),
+                      ),
+                      Text(
+                        '${(progress * 100).toInt()}%',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontFamily: 'Tajawal',
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF3A3534),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 10),
+                  Container(
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: progress.clamp(0.0, 1.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isCompleted ? Color(0xFF8B5A5A) : Color(0xFF5A7C59),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 25),
+                  // Participants
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        '$participants مساهم',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontFamily: 'Tajawal',
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Icon(Icons.people, size: 18, color: Colors.grey.shade700),
+                    ],
+                  ),
+                  SizedBox(height: 30),
+                  // Participate button
+                  if (!isMyMission && !isCompleted)
+                    SizedBox(
+                      width: double.infinity,
+                      child: MaterialButton(
+                        onPressed: () async {
+                          try {
+                            await _missionRepo.startMission(
+                              mission['id'] ?? 0,
+                              widget.token ?? '',
+                            );
+                            if (mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('تم الانضمام إلى المهمة بنجاح'),
+                                  backgroundColor: Color(0xFF5A7C59),
+                                ),
+                              );
+                              _loadMissions();
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('حدث خطأ أثناء الانضمام'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        color: Color(0xFF5A7C59),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Text(
+                          'شارك في المهمة',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Tajawal',
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
