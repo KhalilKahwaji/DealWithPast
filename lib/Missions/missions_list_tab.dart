@@ -28,6 +28,7 @@ class _MissionsListTabState extends State<MissionsListTab> {
   // Filter states
   String _sortBy = 'newest';
   String? _difficultyFilter;
+  String _missionType = 'all'; // 'all', 'created', 'joined'
 
   @override
   void initState() {
@@ -39,16 +40,50 @@ class _MissionsListTabState extends State<MissionsListTab> {
     setState(() => _isLoading = true);
 
     try {
-      final response = await _missionRepo.getNearbyMissions(
-        33.8938,
-        35.5018,
-        radius: 100,
-        token: widget.token,
-      );
+      dynamic response;
 
-      if (response != null && response['missions'] != null) {
+      switch (_missionType) {
+        case 'created':
+          // TODO: Need API endpoint for missions created by user
+          // For now, filter client-side by creator_id
+          response = await _missionRepo.getNearbyMissions(
+            33.8938,
+            35.5018,
+            radius: 50,
+            token: widget.token,
+          );
+          break;
+        case 'joined':
+          // Use getMyMissions for missions user is participating in
+          response = await _missionRepo.getMyMissions(widget.token ?? '');
+          break;
+        case 'all':
+        default:
+          // Get all nearby missions
+          response = await _missionRepo.getNearbyMissions(
+            33.8938,
+            35.5018,
+            radius: 50, // Reduced from 100km to 50km for Lebanon
+            token: widget.token,
+          );
+          break;
+      }
+
+      if (response != null) {
+        final missionsList = response['missions'] ?? response;
         setState(() {
-          _missions = List<Map<String, dynamic>>.from(response['missions']);
+          _missions = List<Map<String, dynamic>>.from(
+            missionsList is List ? missionsList : [missionsList]
+          );
+
+          // Filter by creator if needed
+          if (_missionType == 'created' && widget.userId != null) {
+            _missions = _missions.where((m) =>
+              m['creator_id'] == widget.userId ||
+              m['user_id'] == widget.userId
+            ).toList();
+          }
+
           _filteredMissions = List.from(_missions);
           _isLoading = false;
         });
@@ -85,21 +120,42 @@ class _MissionsListTabState extends State<MissionsListTab> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // Mission list
-        if (_isLoading)
-          const Center(child: CircularProgressIndicator(color: Color(0xFF5A7C59)))
-        else
-          RefreshIndicator(
-            onRefresh: _loadMissions,
-            color: const Color(0xFF5A7C59),
-            child: _filteredMissions.isEmpty
-              ? _buildEmptyState()
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
-                  itemCount: _filteredMissions.length,
-                  itemBuilder: (context, index) => _buildMissionCard(_filteredMissions[index]),
-                ),
-          ),
+        Column(
+          children: [
+            // Mission type filter tabs
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8DCC8),
+                borderRadius: BorderRadius.circular(25),
+              ),
+              child: Row(
+                children: [
+                  _buildFilterTab('joined', 'انضممت إليها', Icons.check_circle_outline),
+                  _buildFilterTab('created', 'أنشأتها', Icons.add_circle_outline),
+                  _buildFilterTab('all', 'كل المهام', Icons.explore_outlined),
+                ],
+              ),
+            ),
+            // Mission list
+            Expanded(
+              child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: Color(0xFF5A7C59)))
+                : RefreshIndicator(
+                    onRefresh: _loadMissions,
+                    color: const Color(0xFF5A7C59),
+                    child: _filteredMissions.isEmpty
+                      ? _buildEmptyState()
+                      : ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 90),
+                          itemCount: _filteredMissions.length,
+                          itemBuilder: (context, index) => _buildMissionCard(_filteredMissions[index]),
+                        ),
+                  ),
+            ),
+          ],
+        ),
         // FAB button
         Positioned(
           bottom: 100,
@@ -146,15 +202,64 @@ class _MissionsListTabState extends State<MissionsListTab> {
     }
   }
 
+  Widget _buildFilterTab(String type, String label, IconData icon) {
+    final isSelected = _missionType == type;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() => _missionType = type);
+          _loadMissions();
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF8B5A5A) : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: isSelected ? Colors.white : const Color(0xFF3A3534),
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'Tajawal',
+                    color: isSelected ? Colors.white : const Color(0xFF3A3534),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildEmptyState() {
+    String message = 'لا توجد مهام حالياً';
+    if (_missionType == 'created') {
+      message = 'لم تنشئ أي مهام بعد';
+    } else if (_missionType == 'joined') {
+      message = 'لم تنضم إلى أي مهام بعد';
+    }
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
+        children: [
           Icon(Icons.explore_outlined, size: 64, color: Colors.grey),
           SizedBox(height: 16),
           Text(
-            'لا توجد مهام حالياً',
+            message,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
