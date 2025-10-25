@@ -309,6 +309,20 @@ class _MissionsListTabState extends State<MissionsListTab> {
         children: [
           Row(
             children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3A3534),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  isCompleted ? Icons.emoji_events : Icons.menu_book,
+                  color: isCompleted ? const Color(0xFFD4AF37) : const Color(0xFFE8A99C),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -340,20 +354,6 @@ class _MissionsListTabState extends State<MissionsListTab> {
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF3A3534),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  isCompleted ? Icons.emoji_events : Icons.menu_book,
-                  color: Color(isCompleted ? 0xFFD4AF37 : 0xFFE8A99C),
-                  size: 24,
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -364,7 +364,7 @@ class _MissionsListTabState extends State<MissionsListTab> {
               borderRadius: BorderRadius.circular(4),
             ),
             child: FractionallySizedBox(
-              alignment: Alignment.centerRight,
+              alignment: Alignment.centerLeft,
               widthFactor: progress.clamp(0.0, 1.0),
               child: Container(
                 decoration: BoxDecoration(
@@ -372,14 +372,6 @@ class _MissionsListTabState extends State<MissionsListTab> {
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '$completionCount / $goalCount قصص',
-            style: const TextStyle(
-              fontSize: 13,
-              fontFamily: 'Tajawal',
             ),
           ),
         ],
