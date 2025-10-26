@@ -96,8 +96,110 @@ class DWP_Gamification {
             new DWP_Admin_UI();
         }
 
+        // Setup deep linking for missions
+        add_action('template_redirect', array($this, 'handle_mission_deep_link'));
+
         // Load text domain
         load_plugin_textdomain('dwp-gamification', false, dirname(DWP_GAMIFICATION_BASENAME) . '/languages');
+    }
+
+    /**
+     * Handle deep linking for mission URLs
+     * Redirects https://dwp.world/mission/{id} to dwp://mission/{id} on mobile
+     */
+    public function handle_mission_deep_link() {
+        // Only process if we're on a mission single page
+        if (!is_singular('mission')) {
+            return;
+        }
+
+        // Get the mission ID
+        $mission_id = get_the_ID();
+        if (!$mission_id) {
+            return;
+        }
+
+        // Check if user is on mobile device
+        $user_agent = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '';
+        $is_mobile = preg_match('/(android|iphone|ipad|mobile)/i', $user_agent);
+
+        // Only redirect on mobile
+        if (!$is_mobile) {
+            return;
+        }
+
+        // Build deep link URL
+        $deep_link = 'dwp://mission/' . $mission_id;
+
+        // Redirect to app with fallback
+        ?>
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Opening in DealWithPast App...</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                body {
+                    font-family: 'Tajawal', -apple-system, BlinkMacSystemFont, sans-serif;
+                    text-align: center;
+                    padding: 50px 20px;
+                    background: linear-gradient(135deg, #5A7C59 0%, #8B5A5A 100%);
+                    color: white;
+                    min-height: 100vh;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                }
+                .spinner {
+                    border: 4px solid rgba(255, 255, 255, 0.3);
+                    border-radius: 50%;
+                    border-top: 4px solid white;
+                    width: 50px;
+                    height: 50px;
+                    animation: spin 1s linear infinite;
+                    margin: 30px auto;
+                }
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+                .message {
+                    font-size: 18px;
+                    margin: 20px 0;
+                }
+                .fallback {
+                    margin-top: 30px;
+                    font-size: 14px;
+                    opacity: 0.9;
+                }
+                a {
+                    color: #F5F0E8;
+                    text-decoration: underline;
+                }
+            </style>
+        </head>
+        <body>
+            <h1>📍 خارطة وذاكرة</h1>
+            <div class="spinner"></div>
+            <p class="message">Opening mission in app...</p>
+            <p class="fallback">
+                Don't have the app? <a href="https://play.google.com/store">Download here</a>
+            </p>
+            <script>
+                // Attempt to open the app
+                window.location.href = '<?php echo esc_js($deep_link); ?>';
+
+                // If app doesn't open after 2 seconds, show fallback
+                setTimeout(function() {
+                    document.querySelector('.message').textContent = 'App not installed?';
+                }, 2000);
+            </script>
+        </body>
+        </html>
+        <?php
+        exit;
     }
 
     /**

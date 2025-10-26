@@ -16,6 +16,13 @@ class DWP_Notification_Handler {
      */
     public function __construct() {
         add_action('rest_api_init', array($this, 'register_notification_routes'));
+
+        // Mission status change hooks
+        add_action('transition_post_status', array($this, 'handle_mission_status_change'), 10, 3);
+
+        // Send admin email when new mission submitted
+        add_action('pending_to_publish', array($this, 'send_admin_email_new_mission'), 10, 1);
+
         // FCM sending will be implemented in Phase 2
     }
 
@@ -325,5 +332,133 @@ class DWP_Notification_Handler {
         }
 
         return false;
+    }
+
+    /**
+     * Handle mission status changes (pending -> publish, pending -> trash, etc.)
+     */
+    public function handle_mission_status_change($new_status, $old_status, $post) {
+        // Only handle mission posts
+        if ($post->post_type !== 'mission') {
+            return;
+        }
+
+        $mission_id = $post->ID;
+        $mission_title = $post->post_title;
+        $creator_id = $post->post_author;
+
+        error_log("DWP: Mission status change - ID: $mission_id, Old: $old_status, New: $new_status");
+
+        // Mission APPROVED (pending -> publish)
+        if ($old_status === 'pending' && $new_status === 'publish') {
+            error_log("DWP: Mission $mission_id APPROVED by admin");
+
+            // Send notification to creator (in Arabic)
+            self::create_notification(
+                $creator_id,
+                'mission_approved',
+                'تم قبول مهمتك!',
+                sprintf('مهمتك "%s" تم قبولها ونشرها. يمكنك الآن مشاركتها مع الآخرين!', $mission_title),
+                array(
+                    'mission_id' => $mission_id,
+                    'mission_title' => $mission_title,
+                )
+            );
+        }
+
+        // Mission REJECTED (pending -> trash or pending -> draft)
+        if ($old_status === 'pending' && ($new_status === 'trash' || $new_status === 'draft')) {
+            error_log("DWP: Mission $mission_id REJECTED by admin");
+
+            // Get rejection reason from ACF (admin should set this)
+            $rejection_reason = get_field('rejection_reason', $mission_id);
+            if (empty($rejection_reason)) {
+                $rejection_reason = 'لم يتم توفير سبب محدد';
+            }
+
+            // Send notification to creator (in Arabic)
+            self::create_notification(
+                $creator_id,
+                'mission_rejected',
+                'لم يتم قبول المهمة',
+                sprintf('مهمتك "%s" لم يتم قبولها. السبب: %s', $mission_title, $rejection_reason),
+                array(
+                    'mission_id' => $mission_id,
+                    'mission_title' => $mission_title,
+                    'rejection_reason' => $rejection_reason,
+                    'can_resubmit' => true,
+                )
+            );
+
+            // IMPORTANT: DO NOT delete stories attached to this mission
+            // Missions can be deleted, but stories must be preserved
+            error_log("DWP: Mission rejected but associated stories preserved");
+        }
+
+        // Mission SUBMITTED (new -> pending or auto-draft -> pending)
+        if ($new_status === 'pending' && in_array($old_status, array('new', 'auto-draft', 'draft'))) {
+            error_log("DWP: New mission $mission_id submitted for review");
+
+            // Send email to admin (implemented below)
+            $this->send_admin_email_new_mission($post);
+        }
+    }
+
+    /**
+     * Send email notification to admins when new mission submitted
+     */
+    public function send_admin_email_new_mission($post) {
+        // Only send for pending missions
+        if ($post->post_type !== 'mission' || $post->post_status !== 'pending') {
+            return;
+        }
+
+        $mission_id = $post->ID;
+        $mission_title = $post->post_title;
+        $creator = get_userdata($post->post_author);
+        $creator_name = $creator ? $creator->display_name : 'Unknown';
+        $creator_email = $creator ? $creator->user_email : '';
+
+        // Get mission details
+        $latitude = get_field('latitude', $mission_id);
+        $longitude = get_field('longitude', $mission_id);
+        $address = get_field('address', $mission_id);
+        $category = get_field('category', $mission_id);
+        $difficulty = get_field('difficulty', $mission_id);
+
+        // Admin email (get from WordPress settings or use default)
+        $admin_email = get_option('admin_email');
+
+        // Email subject (in Arabic)
+        $subject = sprintf('[DWP] مهمة جديدة بانتظار المراجعة: %s', $mission_title);
+
+        // Email body (in Arabic with English mixed)
+        $message = "مهمة جديدة تم إرسالها وتنتظر مراجعتك:\n\n";
+        $message .= "📍 العنوان: $mission_title\n";
+        $message .= "👤 المنشئ: $creator_name ($creator_email)\n";
+        $message .= "📂 التصنيف: $category\n";
+        $message .= "⚡ الصعوبة: $difficulty\n";
+        $message .= "📍 الموقع: $address ($latitude, $longitude)\n\n";
+        $message .= "الوصف:\n" . strip_tags($post->post_content) . "\n\n";
+        $message .= "---\n";
+        $message .= "لمراجعة وقبول أو رفض المهمة:\n";
+        $message .= admin_url("post.php?post=$mission_id&action=edit") . "\n\n";
+        $message .= "ملاحظة: إذا قمت برفض المهمة، يرجى إضافة سبب الرفض في حقل 'Rejection Reason' حتى يتم إخطار المستخدم.\n";
+        $message .= "الوقت المتوقع للمراجعة: 24 ساعة\n";
+
+        // Set headers (UTF-8 for Arabic)
+        $headers = array(
+            'Content-Type: text/plain; charset=UTF-8',
+            'From: DealWithPast <noreply@dwp.world>',
+        );
+
+        // Send email
+        $sent = wp_mail($admin_email, $subject, $message, $headers);
+
+        if ($sent) {
+            error_log("DWP: Admin email sent for mission $mission_id");
+        } else {
+            error_log("DWP: Failed to send admin email for mission $mission_id");
+        }
     }
 }

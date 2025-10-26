@@ -240,13 +240,147 @@ class DWP_API_Endpoints {
                 ),
             ),
         ));
+
+        // Get user badges - GAMIFICATION
+        register_rest_route($this->namespace, '/users/(?P<id>\d+)/badges', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_user_badges'),
+            'permission_callback' => '__return_true', // Public endpoint
+        ));
+
+        // Get user legacy data - GAMIFICATION
+        register_rest_route($this->namespace, '/users/(?P<id>\d+)/legacy', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_user_legacy'),
+            'permission_callback' => '__return_true', // Public endpoint
+        ));
+
+        // Get user's pending missions (for tracking submissions)
+        register_rest_route($this->namespace, '/missions/my-pending', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_my_pending_missions'),
+            'permission_callback' => array($this, 'check_auth'),
+        ));
     }
 
     /**
-     * Check if user is authenticated
+     * Check if user is authenticated (supports session cookies and Firebase JWT tokens)
      */
     public function check_auth($request) {
-        return is_user_logged_in();
+        // First check WordPress session
+        if (is_user_logged_in()) {
+            return true;
+        }
+
+        // Check for JWT Bearer token in Authorization header
+        $auth_header = $request->get_header('authorization');
+        if (!$auth_header) {
+            return new WP_Error(
+                'rest_forbidden',
+                __('Authorization header missing.'),
+                array('status' => 401)
+            );
+        }
+
+        // Extract token from "Bearer <token>" format
+        if (preg_match('/Bearer\s+(.*)$/i', $auth_header, $matches)) {
+            $token = $matches[1];
+            error_log('DWP Auth: Received token (first 50 chars): ' . substr($token, 0, 50));
+
+            // Try to decode the Firebase JWT token
+            try {
+                // Split the JWT token (format: header.payload.signature)
+                $token_parts = explode('.', $token);
+                if (count($token_parts) !== 3) {
+                    error_log('DWP Auth: Invalid token format - parts count: ' . count($token_parts));
+                    throw new Exception('Invalid token format');
+                }
+
+                // Decode the payload (second part)
+                // Firebase tokens use base64url encoding
+                $payload_encoded = $token_parts[1];
+                $payload_json = base64_decode(strtr($payload_encoded, '-_', '+/'));
+                $payload = json_decode($payload_json);
+
+                if (!$payload) {
+                    error_log('DWP Auth: Failed to decode token payload. JSON: ' . substr($payload_json, 0, 100));
+                    throw new Exception('Failed to decode token payload');
+                }
+
+                error_log('DWP Auth: Token payload keys: ' . implode(', ', array_keys((array)$payload)));
+
+                // Firebase token has user_id (Firebase UID)
+                $firebase_uid = null;
+                if (isset($payload->user_id)) {
+                    $firebase_uid = $payload->user_id;
+                } elseif (isset($payload->sub)) {
+                    // 'sub' is the standard JWT claim for subject (user ID)
+                    $firebase_uid = $payload->sub;
+                }
+
+                if (!$firebase_uid) {
+                    error_log('DWP Auth: No user ID found in token. Available fields: ' . json_encode($payload));
+                    throw new Exception('No user ID found in token');
+                }
+
+                error_log('DWP Auth: Firebase UID extracted: ' . $firebase_uid);
+
+                // Find WordPress user with this Firebase UID
+                $users = get_users(array(
+                    'meta_key' => 'firebase_uid',
+                    'meta_value' => $firebase_uid,
+                    'number' => 1,
+                ));
+
+                error_log('DWP Auth: Users found by Firebase UID: ' . count($users));
+
+                if (empty($users)) {
+                    // User not found - try to get email from token and find by email
+                    $email = isset($payload->email) ? $payload->email : null;
+                    error_log('DWP Auth: Email from token: ' . ($email ? $email : 'none'));
+
+                    if ($email) {
+                        $user = get_user_by('email', $email);
+                        if ($user) {
+                            error_log('DWP Auth: User found by email: ' . $user->user_email . ' (ID: ' . $user->ID . ')');
+                            // Update their Firebase UID for future requests
+                            update_user_meta($user->ID, 'firebase_uid', $firebase_uid);
+                            wp_set_current_user($user->ID);
+                            error_log('DWP Auth: User authenticated successfully');
+                            return true;
+                        } else {
+                            error_log('DWP Auth: No user found with email: ' . $email);
+                        }
+                    }
+
+                    return new WP_Error(
+                        'rest_forbidden',
+                        __('DEBUG: No WP user found. Email from token: ' . ($email ? $email : 'NONE') . ' | Firebase UID: ' . $firebase_uid . ' | Token payload keys: ' . implode(', ', array_keys((array)$payload))),
+                        array('status' => 401)
+                    );
+                }
+
+                // Authenticate the user
+                $user = $users[0];
+                wp_set_current_user($user->ID);
+                error_log('DWP Auth: User authenticated by Firebase UID: ' . $user->user_email . ' (ID: ' . $user->ID . ')');
+                return true;
+
+            } catch (Exception $e) {
+                error_log('DWP Auth: Exception - ' . $e->getMessage());
+                return new WP_Error(
+                    'rest_forbidden',
+                    __('DEBUG: Auth exception - ' . $e->getMessage()),
+                    array('status' => 401)
+                );
+            }
+        }
+
+        return new WP_Error(
+            'rest_forbidden',
+            __('Invalid authorization header format.'),
+            array('status' => 401)
+        );
     }
 
     /**
@@ -267,7 +401,7 @@ class DWP_API_Endpoints {
         $posts_table = $wpdb->prefix . 'posts';
         $postmeta_table = $wpdb->prefix . 'postmeta';
 
-        // Haversine formula SQL query
+        // Haversine formula SQL query - ONLY published missions
         $sql = $wpdb->prepare("
             SELECT DISTINCT p.ID, p.post_title, p.post_content, p.post_date,
                    lat.meta_value AS latitude,
@@ -1031,5 +1165,254 @@ class DWP_API_Endpoints {
         }
 
         return $response;
+    }
+
+    /**
+     * Get user badges - GAMIFICATION
+     * Endpoint: GET /wp-json/dwp/v1/users/{id}/badges
+     */
+    public function get_user_badges($request) {
+        $user_id = (int) $request['id'];
+
+        // Get user's story count
+        $args = array(
+            'post_type' => 'stories',
+            'author' => $user_id,
+            'post_status' => 'publish',
+            'posts_per_page' => -1,
+            'fields' => 'ids',
+        );
+        $user_stories = get_posts($args);
+        $total_stories = count($user_stories);
+
+        // Get stories with media
+        $stories_with_media = 0;
+        foreach ($user_stories as $story_id) {
+            if (get_field('audio_url', $story_id) || get_field('video_url', $story_id)) {
+                $stories_with_media++;
+            }
+        }
+
+        // Get user's mission data
+        $missions_created = count(get_posts(array(
+            'post_type' => 'mission',
+            'author' => $user_id,
+            'post_status' => 'publish',
+            'fields' => 'ids',
+        )));
+
+        // Get missions participated in (stories linked to missions)
+        $missions_participated = array();
+        foreach ($user_stories as $story_id) {
+            $mission_id = get_field('mission_id', $story_id);
+            if ($mission_id && !in_array($mission_id, $missions_participated)) {
+                $missions_participated[] = $mission_id;
+            }
+        }
+        $missions_participated_count = count($missions_participated);
+
+        // Check badge unlock status
+        $badges = array(
+            // FOUNDATION BADGES
+            array(
+                'id' => 'voice',
+                'unlocked' => $stories_with_media >= 1,
+                'progress' => min($stories_with_media, 1),
+            ),
+            array(
+                'id' => 'memory_keeper',
+                'unlocked' => $total_stories >= 1,
+                'progress' => min($total_stories, 1),
+            ),
+            array(
+                'id' => 'narrator',
+                'unlocked' => $total_stories >= 3,
+                'progress' => min($total_stories, 3),
+            ),
+
+            // COMMUNITY BADGES
+            array(
+                'id' => 'community_builder',
+                'unlocked' => $missions_created >= 1,
+                'progress' => min($missions_created, 1),
+            ),
+            array(
+                'id' => 'peace_messenger',
+                'unlocked' => $missions_participated_count >= 3,
+                'progress' => min($missions_participated_count, 3),
+            ),
+            array(
+                'id' => 'memory_protectors',
+                'unlocked' => false, // TODO: Implement invite tracking
+                'progress' => 0,
+            ),
+            array(
+                'id' => 'gatherer',
+                'unlocked' => $missions_participated_count >= 5,
+                'progress' => min($missions_participated_count, 5),
+            ),
+
+            // LEGACY BADGES
+            array(
+                'id' => 'generation_witness',
+                'unlocked' => $total_stories >= 15, // Ambassador level
+                'progress' => min($total_stories, 15),
+            ),
+            array(
+                'id' => 'family_storyteller',
+                'unlocked' => false, // TODO: Check for family history stories
+                'progress' => 0,
+            ),
+            array(
+                'id' => 'peacemaker',
+                'unlocked' => false, // TODO: Check for reconciliation stories
+                'progress' => 0,
+            ),
+            array(
+                'id' => 'culture_guardian',
+                'unlocked' => false, // TODO: Check for cultural missions created
+                'progress' => 0,
+            ),
+            array(
+                'id' => 'story_champion',
+                'unlocked' => count($missions_participated) >= 3 && $total_stories >= 5,
+                'progress' => min(count($missions_participated), 3),
+            ),
+        );
+
+        return new WP_REST_Response(array(
+            'user_id' => $user_id,
+            'badges' => $badges,
+            'total_unlocked' => count(array_filter($badges, function($b) { return $b['unlocked']; })),
+        ), 200);
+    }
+
+    /**
+     * Get user legacy data - GAMIFICATION
+     * Endpoint: GET /wp-json/dwp/v1/users/{id}/legacy
+     */
+    public function get_user_legacy($request) {
+        $user_id = (int) $request['id'];
+
+        // Get user info
+        $user = get_userdata($user_id);
+        if (!$user) {
+            return new WP_Error('user_not_found', 'User not found', array('status' => 404));
+        }
+
+        // Get user's stories
+        $args = array(
+            'post_type' => 'stories',
+            'author' => $user_id,
+            'post_status' => 'publish',
+            'posts_per_page' => -1,
+            'fields' => 'ids',
+        );
+        $user_stories = get_posts($args);
+        $total_stories = count($user_stories);
+
+        // Count stories with media
+        $stories_with_media = 0;
+        $themes = array();
+        foreach ($user_stories as $story_id) {
+            // Check for media
+            if (get_field('audio_url', $story_id) || get_field('video_url', $story_id)) {
+                $stories_with_media++;
+            }
+
+            // Collect themes
+            $story_themes = wp_get_post_terms($story_id, 'theme', array('fields' => 'names'));
+            $themes = array_merge($themes, $story_themes);
+        }
+        $themes_explored = count(array_unique($themes));
+
+        // Get user's missions
+        $missions_created = count(get_posts(array(
+            'post_type' => 'mission',
+            'author' => $user_id,
+            'post_status' => 'publish',
+            'fields' => 'ids',
+        )));
+
+        // Get missions participated in
+        $missions_participated = array();
+        foreach ($user_stories as $story_id) {
+            $mission_id = get_field('mission_id', $story_id);
+            if ($mission_id && !in_array($mission_id, $missions_participated)) {
+                $missions_participated[] = $mission_id;
+            }
+        }
+
+        // Get member since date
+        $member_since = get_userdata($user_id)->user_registered;
+
+        // Get user avatar
+        $avatar_url = get_avatar_url($user_id, array('size' => 96));
+
+        return new WP_REST_Response(array(
+            'user_name' => $user->display_name,
+            'user_avatar' => $avatar_url,
+            'member_since' => $member_since,
+            'stories' => array(
+                'total' => $total_stories,
+                'with_media' => $stories_with_media,
+            ),
+            'missions' => array(
+                'total' => $missions_created + count($missions_participated),
+                'created' => $missions_created,
+                'participated' => count($missions_participated),
+            ),
+            'community' => array(
+                'people_invited' => 0, // TODO: Implement invite tracking
+                'themes_explored' => $themes_explored,
+            ),
+        ), 200);
+    }
+
+    /**
+     * Get user's pending missions (submissions waiting for approval)
+     */
+    public function get_my_pending_missions($request) {
+        $user_id = get_current_user_id();
+
+        $args = array(
+            'post_type' => 'mission',
+            'post_status' => 'pending',
+            'author' => $user_id,
+            'posts_per_page' => -1,
+            'orderby' => 'date',
+            'order' => 'DESC',
+        );
+
+        $query = new WP_Query($args);
+        $missions = array();
+
+        if ($query->have_posts()) {
+            while ($query->have_posts()) {
+                $query->the_post();
+                $post_id = get_the_ID();
+
+                $missions[] = array(
+                    'id' => $post_id,
+                    'title' => get_the_title(),
+                    'description' => get_the_content(),
+                    'latitude' => floatval(get_field('latitude', $post_id)),
+                    'longitude' => floatval(get_field('longitude', $post_id)),
+                    'address' => get_field('address', $post_id),
+                    'category' => get_field('category', $post_id),
+                    'difficulty' => get_field('difficulty', $post_id),
+                    'status' => 'pending',
+                    'submitted_at' => get_the_date('c'),
+                    'rejection_reason' => get_field('rejection_reason', $post_id), // Will be set if previously rejected
+                );
+            }
+            wp_reset_postdata();
+        }
+
+        return rest_ensure_response(array(
+            'success' => true,
+            'count' => count($missions),
+            'pending_missions' => $missions,
+        ));
     }
 }

@@ -265,6 +265,17 @@ class DWP_Mission_CPT {
                     'instructions' => 'Comma-separated theme tags (e.g., "war", "reconstruction", "daily life", "family", "resistance")',
                     'placeholder' => 'war, daily life, family',
                 ),
+                // Rejection Reason (for admin to explain why mission was rejected)
+                array(
+                    'key' => 'field_mission_rejection_reason',
+                    'label' => 'Rejection Reason (سبب الرفض)',
+                    'name' => 'rejection_reason',
+                    'type' => 'textarea',
+                    'instructions' => 'If rejecting this mission, please provide a reason in Arabic. The creator will see this message. Examples: المحتوى غير مناسب، معلومات غير دقيقة، موقع غير صحيح',
+                    'placeholder' => 'اكتب سبب رفض المهمة هنا...',
+                    'rows' => 3,
+                    'conditional_logic' => 0,
+                ),
             ),
             'location' => array(
                 array(
