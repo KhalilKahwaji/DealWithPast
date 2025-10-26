@@ -194,7 +194,7 @@ class _MissionsPageState extends State<MissionsPage> {
       context,
       MaterialPageRoute(
         builder: (context) => MissionDetailPage(
-          missionId: mission['id'],
+          missionId: mission['id'] is int ? mission['id'] : int.parse(mission['id'].toString()),
           token: _token,
         ),
       ),
