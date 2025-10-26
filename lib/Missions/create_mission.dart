@@ -132,8 +132,12 @@ class _CreateMissionPageState extends State<CreateMissionPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('تم إنشاء المهمة بنجاح!'),
-            backgroundColor: Color(0xFF4CAF50),
+            content: Text(
+              'تم إرسال المهمة للمراجعة. سيتم إخطارك عند الموافقة عليها (عادة خلال 24 ساعة)',
+              style: TextStyle(fontFamily: 'Tajawal'),
+            ),
+            backgroundColor: Color(0xFF5A7C59),
+            duration: Duration(seconds: 5),
           ),
         );
         Navigator.pop(context);
