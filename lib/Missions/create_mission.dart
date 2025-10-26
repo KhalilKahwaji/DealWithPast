@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:place_picker/place_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../Repos/MissionRepo.dart';
 import '../Repos/UserRepo.dart';
 
@@ -106,9 +107,11 @@ class _CreateMissionPageState extends State<CreateMissionPage> {
     setState(() => _isSubmitting = true);
 
     try {
-      // Get user credentials
+      // Get user credentials and profile photo
       final username = await _userRepo.currentUserEmail();
       final password = ''; // TODO: Handle authentication properly
+      final currentUser = FirebaseAuth.instance.currentUser;
+      final photoUrl = currentUser?.photoURL;
 
       final missionData = {
         'title': _titleController.text.trim(),
@@ -121,6 +124,7 @@ class _CreateMissionPageState extends State<CreateMissionPage> {
         'address': _selectedLocation?.formattedAddress,
         'goal_count': 10, // Default goal
         'mission_type': 'visit', // Default type
+        'creator_avatar': photoUrl, // Google profile photo
       };
 
       final response = await _missionRepo.createMission(
