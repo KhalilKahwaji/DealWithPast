@@ -5,6 +5,110 @@
 
 ---
 
+## [2025-10-26] - Session 8: Mission Approval Workflow Implementation
+
+### Backend (WordPress Plugin)
+- ✅ **Mission Approval System** - wordpress-plugin/dwp-gamification/includes/class-notification-handler.php
+  - Added `transition_post_status` hook to detect mission status changes
+  - Handles three transitions:
+    - pending → publish (APPROVED): Creates notification "تم قبول مهمتك!"
+    - pending → trash/draft (REJECTED): Creates notification with rejection_reason
+    - new/draft → pending (SUBMITTED): Sends email to admin
+  - Arabic notification messages for all mission status changes
+  - Notifications stored in wp_dwp_notifications table
+  - Story preservation: Missions can be deleted but stories remain intact
+
+- ✅ **Admin Email Notifications** - wordpress-plugin/dwp-gamification/includes/class-notification-handler.php (line 410)
+  - UTF-8 email sent to admin@dwp.world when mission submitted
+  - Includes: mission title, creator info, coordinates, category, difficulty
+  - Link to WordPress admin for quick review
+  - Mentions 24-hour expected review time
+  - Instructions to add rejection reason if rejecting
+
+- ✅ **Rejection Reason Field** - wordpress-plugin/dwp-gamification/includes/class-mission-cpt.php (line 268)
+  - Added ACF textarea field: `rejection_reason`
+  - Label: "Rejection Reason (سبب الرفض)"
+  - Placeholder: "اكتب سبب رفض المهمة هنا..."
+  - Visible to admin in mission editor
+  - Included in rejection notification to user
+
+- ✅ **Reverted SQL Query** - wordpress-plugin/dwp-gamification/includes/class-api-endpoints.php (line 397)
+  - Nearby missions endpoint now ONLY shows published missions
+  - Removed pending mission visibility (even for creator)
+  - WHERE clause: `p.post_status = 'publish'`
+  - Pending missions invisible until admin approval
+
+- ✅ **My Pending Missions Endpoint** - wordpress-plugin/dwp-gamification/includes/class-api-endpoints.php (line 1372)
+  - New endpoint: `GET /wp-json/dwp/v1/missions/my-pending`
+  - Returns user's pending missions for tracking submissions
+  - Includes rejection_reason if previously rejected
+  - Allows users to see their submission status
+
+### Frontend (Flutter App)
+- ✅ **Pending Review Message** - lib/Missions/create_mission.dart (line 140)
+  - Removed premature success dialog
+  - Shows green SnackBar: "تم إرسال المهمة للمراجعة. سيتم إخطارك عند الموافقة عليها (عادة خلال 24 ساعة)"
+  - 5-second duration with Color(0xFF5A7C59) background
+  - Mentions 24-hour review time
+  - No sharing dialog until admin approval
+
+- ✅ **Google Profile Photo Integration** - lib/Missions/create_mission.dart (line 113-127)
+  - Added Firebase Auth import
+  - Gets `photoURL` from `FirebaseAuth.instance.currentUser`
+  - Includes `creator_avatar` field in mission creation payload
+  - User's Google account photo now displays on:
+    - Map markers for user-created missions
+    - Mission detail modals
+    - Mission cards in lists
+
+- ✅ **Mission ID Type Conversion Fix** - lib/Missions/missions.dart (line 197)
+  - Fixed `type 'String' is not a subtype of type 'int?'` error
+  - Converts mission ID from API (String or int) to int type
+  - Formula: `mission['id'] is int ? mission['id'] : int.parse(mission['id'].toString())`
+  - Resolves crash when clicking "contribute to mission"
+  - Ensures compatibility with both int and String API responses
+
+### Files Modified
+- `wordpress-plugin/dwp-gamification/includes/class-notification-handler.php` - Mission status change hooks + admin email
+- `wordpress-plugin/dwp-gamification/includes/class-mission-cpt.php` - Rejection reason ACF field
+- `wordpress-plugin/dwp-gamification/includes/class-api-endpoints.php` - SQL revert + pending endpoint
+- `wordpress-plugin/dwp-gamification.zip` - Updated plugin package
+- `lib/Missions/create_mission.dart` - Pending review message + Google photo
+- `lib/Missions/missions.dart` - Mission ID type conversion
+
+### Git Commits
+- `c5e4d5d` - Mission approval workflow (7 files, 2,264 insertions)
+- `19cb396` - Show pending review message after mission submission
+- `c9b9fbf` - Add Google profile photo to mission creation
+- `bc1782b` - Convert mission ID to int when navigating to detail page
+
+### Workflow
+**Mission Creation Flow (User Perspective):**
+1. User creates mission → Shows "تم إرسال المهمة للمراجعة..."
+2. Mission NOT visible on map/list (status: pending)
+3. Admin receives email notification
+4. Admin reviews in WordPress (24 hours)
+5. Admin approves → User receives notification "تم قبول مهمتك!"
+6. Mission appears on map/list (status: publish)
+7. User can now share mission
+
+**Mission Rejection Flow:**
+1. Admin rejects mission → Changes status to trash/draft
+2. Admin adds rejection reason in ACF field
+3. User receives notification with reason
+4. User can edit and resubmit mission
+
+### Testing Status
+- ✅ Backend: Complete and uploaded to WordPress
+- ✅ Frontend: Pending review message working
+- ✅ Frontend: Google photo integration working
+- ✅ Frontend: Mission ID type fix working
+- ⏳ Pending: Admin email testing (check admin@dwp.world)
+- ⏳ Pending: Notification polling service (Phase 2)
+- ⏳ Pending: Rejection dialog UI (Phase 2)
+
+---
+
 ## [2025-10-25] - Session 7: Login & Guest UX Strategy Implementation
 
 ### Added
