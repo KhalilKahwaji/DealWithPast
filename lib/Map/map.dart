@@ -1568,12 +1568,19 @@ class _MapPage extends State<MapPage> {
                                       setState(() {
                                         showMissionPage = false;
                                       });
+
+                                      // Convert mission ID to int (API may return String or int)
+                                      final missionId = mainMission?['id'];
+                                      final missionIdInt = missionId is int
+                                        ? missionId
+                                        : (missionId != null ? int.tryParse(missionId.toString()) : null);
+
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
                                           builder: (context) => AddStory(
                                             token,
-                                            missionId: mainMission?['id'],
+                                            missionId: missionIdInt,
                                           ),
                                         ),
                                       );
