@@ -108,9 +108,9 @@ class _CreateMissionPageState extends State<CreateMissionPage> {
 
     try {
       // Get user credentials and profile photo
-      final username = await _userRepo.currentUserEmail();
-      final password = ''; // TODO: Handle authentication properly
       final currentUser = FirebaseAuth.instance.currentUser;
+      final username = currentUser?.email ?? '';
+      final password = ''; // TODO: Handle authentication properly
       final photoUrl = currentUser?.photoURL;
 
       final missionData = {
