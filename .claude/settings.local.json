@@ -33,7 +33,13 @@
       "Bash(git merge:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(findstr:*)",
+      "Bash(dir /B libRepos)",
+      "Bash(dir:*)",
+      "Bash(powershell \"Get-ChildItem -Path lib/Repos/ -Name\")",
+      "Bash(powershell \"Get-ChildItem -Path lib/widgets/ -Name\")",
+      "Bash(\"C:\\development\\flutter\\bin\\flutter.bat\" analyze --no-pub lib/Missions/)"
     ],
     "deny": [],
     "ask": []

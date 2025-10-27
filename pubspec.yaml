@@ -67,6 +67,8 @@ dependencies:
   flutter_email_sender: ^5.1.0
   sign_in_with_apple: ^4.1.0
   share_plus: ^4.5.0
+  shared_preferences: ^2.0.15
+  timeago: ^3.0.2
 
   # alt_http: ^0.3.0
 
