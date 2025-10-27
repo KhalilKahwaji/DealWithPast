@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:interactive_map/theme/colors.dart';
+import 'NotificationBellIcon.dart';
 
 /// Stable identifiers for tabs (use these everywhere)
 enum AppTab {
@@ -135,6 +136,10 @@ class _AppBottomNavScaffoldState extends State<AppBottomNavScaffold> {
         backgroundColor: AppColors.background,
         foregroundColor: AppColors.text,
         automaticallyImplyLeading: false,
+        actions: const [
+          NotificationBellIcon(),
+          SizedBox(width: 8),
+        ],
       ),
       body: current.builder(_goTo, _indexOf),
       bottomNavigationBar: Stack(children: [barWithSafeArea, dividersOverlay]),
