@@ -10,7 +10,8 @@
       "Bash(git fetch:*)",
       "Bash(git log:*)",
       "Bash(git merge:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
