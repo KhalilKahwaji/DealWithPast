@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import '../Repos/MissionRepo.dart';
 import '../My Stories/addStory.dart';
-import '../widgets/app_bottom_nav.dart';
+import '../widgets/MissionReactions.dart';
 
 class MissionDetailPage extends StatefulWidget {
   final int missionId;
@@ -24,7 +24,6 @@ class _MissionDetailPageState extends State<MissionDetailPage> {
 
   Map<String, dynamic>? _mission;
   bool _isLoading = true;
-  bool _hasStarted = false;
 
   @override
   void initState() {
@@ -41,7 +40,6 @@ class _MissionDetailPageState extends State<MissionDetailPage> {
       if (mission != null) {
         setState(() {
           _mission = mission;
-          _hasStarted = mission['user_has_started'] ?? false;
           _isLoading = false;
         });
       } else {
@@ -80,7 +78,6 @@ class _MissionDetailPageState extends State<MissionDetailPage> {
 
     try {
       await _missionRepo.startMission(widget.missionId, widget.token!);
-      setState(() => _hasStarted = true);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('تم البدء في المهمة بنجاح!'),
@@ -140,6 +137,28 @@ class _MissionDetailPageState extends State<MissionDetailPage> {
                 children: [
                   _buildHeroSection(),
                   _buildDetailsSection(),
+                  const SizedBox(height: 20),
+                  // Emoji reactions section
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'التفاعلات',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF3A3534),
+                            fontFamily: 'Tajawal',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        MissionReactions(missionId: widget.missionId),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 30),
                   _buildActionButtons(),
                   const SizedBox(height: 20),
                 ],
