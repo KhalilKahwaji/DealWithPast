@@ -48,7 +48,7 @@ class _MapPage extends State<MapPage> {
   MissionRepo missionRepo = MissionRepo();
   static const _initialCameraPosition =
       CameraPosition(target: LatLng(33.8547, 35.9623), zoom: 8.5, bearing: 10);
-  late GoogleMapController _controller;
+  GoogleMapController? _controller;
   List<Story> stories = [];
   List<Map<String, dynamic>> missions = [];
   bool missionsLoading = true;
@@ -178,8 +178,10 @@ class _MapPage extends State<MapPage> {
       allMarkers.clear();
     });
 
+    if (_controller == null) return; // Don't update markers if map not created yet
+
     if (viewMode == 'stories') {
-      mapCreated(_controller);
+      mapCreated(_controller!);
     } else if (viewMode == 'missions') {
       loadMissionMarkers();
     }
@@ -486,27 +488,29 @@ class _MapPage extends State<MapPage> {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _controller.setMapStyle("[]");
+    if (state == AppLifecycleState.resumed && _controller != null) {
+      _controller!.setMapStyle("[]");
     }
   }
 
   @override
   void dispose() {
     super.dispose();
-    _controller.dispose();
+    _controller?.dispose();
   }
 
   Future<void> _goToLoc() async {
-    // final GoogleMapController controller = await _controller;
-    _controller.animateCamera(
-        CameraUpdate.newLatLngZoom(LatLng(currLat, currLng), 12));
+    if (_controller != null) {
+      _controller!.animateCamera(
+          CameraUpdate.newLatLngZoom(LatLng(currLat, currLng), 12));
+    }
   }
 
   Future<void> _goToAll() async {
-    // final GoogleMapController controller = await _controller;
-    _controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
-        target: LatLng(33.8547, 35.8623), zoom: 8.5, bearing: 10)));
+    if (_controller != null) {
+      _controller!.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
+          target: LatLng(33.8547, 35.8623), zoom: 8.5, bearing: 10)));
+    }
   }
 
   void mapCreated(controller) {
@@ -1169,11 +1173,18 @@ class _MapPage extends State<MapPage> {
             child: Container(
               height: MediaQuery.of(context).size.height * 0.8, // 80% of screen height
               decoration: BoxDecoration(
-                color: Color(0xFF252422),
+                color: Colors.white,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(25),
                   topRight: Radius.circular(25),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 20,
+                    offset: Offset(0, -5),
+                  ),
+                ],
               ),
               child: Column(
                 children: [
@@ -1181,7 +1192,7 @@ class _MapPage extends State<MapPage> {
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                     decoration: BoxDecoration(
-                      color: Color(0xFF4CAF50),
+                      color: Color(0xFFF5F0E8),
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(25),
                         topRight: Radius.circular(25),
@@ -1195,15 +1206,15 @@ class _MapPage extends State<MapPage> {
                               showMissionPage = false;
                             });
                           },
-                          icon: Icon(Icons.close, color: Colors.white, size: 28),
+                          icon: Icon(Icons.close, color: Color(0xFF3A3534), size: 28),
                         ),
                         SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             mainMission?['title'] ?? 'مهمة',
                                     style: TextStyle(
-                                      fontFamily: 'Baloo',
-                                      color: Colors.white,
+                                      fontFamily: 'Tajawal',
+                                      color: Color(0xFF3A3534),
                                       fontSize: 20,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -1221,32 +1232,83 @@ class _MapPage extends State<MapPage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Difficulty Badge
+                                  // Status and Difficulty Badges
                                   Align(
                                     alignment: Alignment.centerRight,
-                                    child: Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                      decoration: BoxDecoration(
-                                        color: (mainMission?['difficulty'] == 'easy')
-                                            ? Colors.green
-                                            : (mainMission?['difficulty'] == 'medium')
-                                                ? Colors.orange
-                                                : Colors.red,
-                                        borderRadius: BorderRadius.circular(25),
-                                      ),
-                                      child: Text(
-                                        (mainMission?['difficulty'] == 'easy')
-                                            ? 'سهل'
-                                            : (mainMission?['difficulty'] == 'medium')
-                                                ? 'متوسط'
-                                                : 'صعب',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontFamily: 'Baloo',
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
+                                    child: Wrap(
+                                      alignment: WrapAlignment.end,
+                                      spacing: 8,
+                                      children: [
+                                        // Completed badge
+                                        if (_calculateProgress(
+                                                  mainMission?['completion_count'],
+                                                  mainMission?['goal_count'],
+                                                ) >= 1.0)
+                                          Container(
+                                            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                            decoration: BoxDecoration(
+                                              color: Color(0xFFD4AF37),
+                                              borderRadius: BorderRadius.circular(25),
+                                            ),
+                                            child: Text(
+                                              'مكتملة',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontFamily: 'Tajawal',
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        // Difficulty badge
+                                        Container(
+                                          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                          decoration: BoxDecoration(
+                                            color: (mainMission?['difficulty'] == 'easy')
+                                                ? Colors.green
+                                                : (mainMission?['difficulty'] == 'medium')
+                                                    ? Colors.orange
+                                                    : Colors.red,
+                                            borderRadius: BorderRadius.circular(25),
+                                          ),
+                                          child: Text(
+                                            (mainMission?['difficulty'] == 'easy')
+                                                ? 'سهل'
+                                                : (mainMission?['difficulty'] == 'medium')
+                                                    ? 'متوسط'
+                                                    : 'صعب',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontFamily: 'Tajawal',
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                        // Tags
+                                        if (mainMission?['tags'] != null)
+                                          ...(mainMission!['tags'] is List
+                                                  ? (mainMission!['tags'] as List)
+                                                  : [mainMission!['tags']])
+                                              .map((tag) => Container(
+                                                    padding: EdgeInsets.symmetric(
+                                                        horizontal: 20, vertical: 10),
+                                                    decoration: BoxDecoration(
+                                                      color: Color(0xFF8B5A5A),
+                                                      borderRadius: BorderRadius.circular(25),
+                                                    ),
+                                                    child: Text(
+                                                      tag.toString(),
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontFamily: 'Tajawal',
+                                                        fontSize: 14,
+                                                        fontWeight: FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ))
+                                              .toList(),
+                                      ],
                                     ),
                                   ),
                                   SizedBox(height: 15),
@@ -1291,10 +1353,10 @@ class _MapPage extends State<MapPage> {
                                   Text(
                                     _stripHtmlTags(mainMission?['description'] ?? 'لا يوجد وصف'),
                                     style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 17,
-                                      fontFamily: 'Baloo',
-                                      height: 1.8,
+                                      color: Colors.grey.shade700,
+                                      fontSize: 15,
+                                      fontFamily: 'Tajawal',
+                                      height: 1.62,
                                     ),
                                     textAlign: TextAlign.right,
                                   ),
@@ -1315,9 +1377,9 @@ class _MapPage extends State<MapPage> {
                                         child: Text(
                                           mainMission?['address'] ?? 'موقع المهمة',
                                           style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 16,
-                                            fontFamily: 'Baloo',
+                                            color: Color(0xFF3A3534),
+                                            fontSize: 14,
+                                            fontFamily: 'Tajawal',
                                           ),
                                           maxLines: 2,
                                           overflow: TextOverflow.ellipsis,
@@ -1341,10 +1403,10 @@ class _MapPage extends State<MapPage> {
                                       Text(
                                         '${mainMission?['reward_points'] ?? 0} نقطة مكافأة',
                                         style: TextStyle(
-                                          color: Color(0xFFFFDE73),
-                                          fontSize: 18,
-                                          fontFamily: 'Baloo',
-                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF3A3534),
+                                          fontSize: 14,
+                                          fontFamily: 'Tajawal',
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                     ],
@@ -1358,10 +1420,10 @@ class _MapPage extends State<MapPage> {
                                       Text(
                                         '${mainMission?['completion_count'] ?? 0}/${mainMission?['goal_count'] ?? 0} قصص',
                                         style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontFamily: 'Baloo',
-                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF3A3534),
+                                          fontSize: 14,
+                                          fontFamily: 'Tajawal',
+                                          fontWeight: FontWeight.w600,
                                         ),
                                         textAlign: TextAlign.right,
                                       ),
@@ -1371,7 +1433,7 @@ class _MapPage extends State<MapPage> {
                                         width: double.infinity,
                                         height: 8,
                                         decoration: BoxDecoration(
-                                          color: Colors.grey.shade800,
+                                          color: Colors.grey.shade300,
                                           borderRadius: BorderRadius.circular(4),
                                         ),
                                         child: FractionallySizedBox(
@@ -1382,7 +1444,12 @@ class _MapPage extends State<MapPage> {
                                           ),
                                           child: Container(
                                             decoration: BoxDecoration(
-                                              color: Color(0xFF4CAF50),
+                                              color: _calculateProgress(
+                                                        mainMission?['completion_count'],
+                                                        mainMission?['goal_count'],
+                                                      ) >= 1.0
+                                                  ? Color(0xFF8B5A5A)
+                                                  : Color(0xFF5A7C59),
                                               borderRadius: BorderRadius.circular(4),
                                             ),
                                           ),
