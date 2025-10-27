@@ -39,10 +39,17 @@ class _MissionDetailPageState extends State<MissionDetailPage> {
       final mission = await _missionRepo.getMissionDetails(widget.missionId, widget.token);
 
       if (mission != null) {
+        final previousProgress = _calculateProgress();
         setState(() {
           _mission = mission;
           _isLoading = false;
         });
+
+        // Check if mission was just completed
+        final currentProgress = _calculateProgress();
+        if (currentProgress >= 1.0 && previousProgress < 1.0) {
+          _showCompletionDialog();
+        }
       } else {
         setState(() => _isLoading = false);
       }
@@ -50,6 +57,112 @@ class _MissionDetailPageState extends State<MissionDetailPage> {
       print('Error loading mission details: $e');
       setState(() => _isLoading = false);
     }
+  }
+
+  void _showCompletionDialog() {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(30),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Celebration icon
+              Container(
+                width: 100,
+                height: 100,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF4CAF50),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.emoji_events,
+                  size: 60,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Title
+              const Text(
+                'مبروك! 🎉',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF3A3534),
+                  fontFamily: 'Tajawal',
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Message
+              Text(
+                'تم إكمال المهمة "${_mission!['title']}" بنجاح!',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFF3A3534),
+                  fontFamily: 'Tajawal',
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Reward info
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF9E6),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFFFDE73)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.stars, color: Color(0xFFFFB300), size: 28),
+                    const SizedBox(width: 8),
+                    Text(
+                      'الجميع حصل على ${_mission!['reward_points']} نقطة!',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF3A3534),
+                        fontFamily: 'Tajawal',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Close button
+              SizedBox(
+                width: double.infinity,
+                child: MaterialButton(
+                  onPressed: () => Navigator.pop(context),
+                  color: const Color(0xFF4CAF50),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: const Text(
+                    'رائع!',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Tajawal',
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _joinMission() async {
@@ -249,6 +362,7 @@ class _MissionDetailPageState extends State<MissionDetailPage> {
   Widget _buildHeroSection() {
     final category = _mission!['category'] ?? 'social';
     final color = category == 'social' ? const Color(0xFF4CAF50) : const Color(0xFF9C27B0);
+    final isCompleted = _calculateProgress() >= 1.0;
 
     return Container(
       width: double.infinity,
@@ -266,15 +380,44 @@ class _MissionDetailPageState extends State<MissionDetailPage> {
       ),
       child: Column(
         children: [
-          // Large icon
-          Container(
-            width: 100,
-            height: 100,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.flag, size: 50, color: color),
+          // Large icon with completion badge
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 100,
+                height: 100,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.flag, size: 50, color: color),
+              ),
+              if (isCompleted)
+                Positioned(
+                  top: -8,
+                  right: -8,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFFB300),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 4,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.check_circle,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 20),
           // Title
@@ -305,21 +448,33 @@ class _MissionDetailPageState extends State<MissionDetailPage> {
               ),
               Column(
                 children: [
-                  Text(
-                    '${((_calculateProgress()) * 100).toInt()}%',
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      fontFamily: 'Tajawal',
+                  if (isCompleted)
+                    const Text(
+                      '✓',
+                      style: TextStyle(
+                        fontSize: 48,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    )
+                  else
+                    Text(
+                      '${((_calculateProgress()) * 100).toInt()}%',
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        fontFamily: 'Tajawal',
+                      ),
                     ),
-                  ),
-                  const Text(
-                    'مكتمل',
-                    style: TextStyle(
+                  const SizedBox(height: 4),
+                  Text(
+                    isCompleted ? 'مكتمل!' : 'مكتمل',
+                    style: const TextStyle(
                       fontSize: 14,
                       color: Colors.white,
                       fontFamily: 'Tajawal',
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
