@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell \"Add-Type -Assembly System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::OpenRead(''wordpress-plugin\\dwp-gamification.zip'').Entries | Select-Object -First 10 FullName\")",
+      "Bash(cmd /c dir /B /S C:UsersziadfDocumentsProjectsUNDPwordpress-plugindwp-gamification)",
+      "Bash(powershell \"Compress-Archive -Path dwp-gamification -DestinationPath dwp-gamification.zip -Force\")",
+      "Bash(powershell \"(Get-Content ''wordpress-plugin\\dwp-gamification\\includes\\class-api-endpoints.php'').Count\")",
+      "Bash(powershell \"(Get-Content ''wordpress-plugin\\dwp-gamification\\includes\\class-mission-cpt.php'').Count\")",
+      "Bash(powershell \"(Get-Content ''lib\\Missions\\create_mission.dart'').Count\")",
+      "Bash(git fetch:*)",
+      "Bash(git log:*)",
+      "Bash(git merge:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
