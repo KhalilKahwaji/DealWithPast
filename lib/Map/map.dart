@@ -281,11 +281,65 @@ class _MapPage extends State<MapPage> {
       }
     }
 
-    // Priority 3: Mission type icon (colored marker as placeholder)
-    // TODO Phase 3: Replace with actual mission type icons (visit/interview/photograph/research/memorial)
-    String missionType = mission['mission_type'] ?? 'visit';
-    double hue = _getMissionTypeHue(missionType);
-    return BitmapDescriptor.defaultMarkerWithHue(hue);
+    // Priority 3: Mission category icon (social vs personal)
+    // Social missions: people icon (green)
+    // Personal missions: star icon (purple)
+    String category = mission['category'] ?? 'social';
+    return await _getCategoryMarkerIcon(category, borderColor);
+  }
+
+  /// Get marker icon based on mission category (social vs personal)
+  Future<BitmapDescriptor> _getCategoryMarkerIcon(String category, Color borderColor) async {
+    // Create custom marker with icon
+    final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(pictureRecorder);
+    final Size size = Size(120, 120);
+
+    // Background circle
+    final Paint circlePaint = Paint()..color = Colors.white;
+    canvas.drawCircle(
+      Offset(size.width / 2, size.height / 2),
+      size.width / 2,
+      circlePaint,
+    );
+
+    // Border circle
+    final Paint borderPaint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 8;
+    canvas.drawCircle(
+      Offset(size.width / 2, size.height / 2),
+      size.width / 2 - 4,
+      borderPaint,
+    );
+
+    // Draw icon in center
+    IconData iconData = category == 'social' ? Icons.people : Icons.star;
+    TextPainter textPainter = TextPainter(textDirection: TextDirection.ltr);
+    textPainter.text = TextSpan(
+      text: String.fromCharCode(iconData.codePoint),
+      style: TextStyle(
+        fontSize: 60,
+        fontFamily: iconData.fontFamily,
+        color: borderColor,
+      ),
+    );
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset(
+        (size.width - textPainter.width) / 2,
+        (size.height - textPainter.height) / 2,
+      ),
+    );
+
+    final ui.Image image = await pictureRecorder.endRecording().toImage(
+      size.width.toInt(),
+      size.height.toInt(),
+    );
+    final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
   }
 
   /// Get marker color hue based on mission type (placeholder until Phase 3 icons)
