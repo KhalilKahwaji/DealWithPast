@@ -1,6 +1,7 @@
 // ignore_for_file: library_private_types_in_public_api
 
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import '../Repos/MissionRepo.dart';
 import '../My Stories/addStory.dart';
 import '../widgets/MissionReactions.dart';
@@ -104,6 +105,51 @@ class _MissionDetailPageState extends State<MissionDetailPage> {
     );
   }
 
+  Future<void> _shareMission() async {
+    if (_mission == null) return;
+
+    final title = _mission!['title'] ?? 'مهمة';
+    final description = _stripHtmlTags(_mission!['description'] ?? '');
+    final category = _mission!['category'] == 'social' ? 'اجتماعية' : 'شخصية';
+    final difficulty = _mission!['difficulty'] == 'easy'
+        ? 'سهل'
+        : _mission!['difficulty'] == 'hard'
+            ? 'صعب'
+            : 'متوسط';
+    final rewardPoints = _mission!['reward_points'] ?? 0;
+    final address = _mission!['address'] ?? '';
+
+    // Build share message in Arabic
+    final shareText = '''
+🎯 $title
+
+📝 $description
+
+📊 التفاصيل:
+• الفئة: $category
+• الصعوبة: $difficulty
+• المكافأة: $rewardPoints نقطة${address.isNotEmpty ? '\n• الموقع: $address' : ''}
+
+انضم لهذه المهمة وساهم في صنع إرث يدوم! 🌟
+
+#DWP #ديل_مع_الماضي #المهام
+''';
+
+    try {
+      await Share.share(
+        shareText,
+        subject: title,
+      );
+    } catch (e) {
+      print('Error sharing mission: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('حدث خطأ أثناء المشاركة')),
+        );
+      }
+    }
+  }
+
   double _calculateProgress() {
     if (_mission == null) return 0.0;
     final completionCount = _mission!['completion_count'] ?? 0;
@@ -127,6 +173,14 @@ class _MissionDetailPageState extends State<MissionDetailPage> {
         backgroundColor: const Color(0xFFFAF7F2),
         elevation: 0,
         centerTitle: true,
+        actions: [
+          if (_mission != null)
+            IconButton(
+              icon: const Icon(Icons.share, color: Color(0xFF3A3534)),
+              onPressed: _shareMission,
+              tooltip: 'مشاركة المهمة',
+            ),
+        ],
       ),
       body: _isLoading
         ? const Center(child: CircularProgressIndicator(color: Color(0xFF4CAF50)))
