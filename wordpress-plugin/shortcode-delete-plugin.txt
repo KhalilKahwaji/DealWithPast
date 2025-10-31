@@ -1,0 +1,138 @@
+/**
+ * Step 1: Add this code to functions.php
+ * Go to: Appearance → Theme File Editor → functions.php
+ * Paste this at the very bottom, then click "Update File"
+ */
+
+add_shortcode('delete_dwp_plugin', function() {
+    // Only allow admins
+    if (!current_user_can('manage_options')) {
+        return '<div style="padding: 20px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 5px; color: #721c24;">⛔ You must be logged in as an administrator.</div>';
+    }
+
+    $plugin_path = WP_PLUGIN_DIR . '/dwp-gamification';
+    $output = '';
+
+    // Check if delete button was clicked
+    if (isset($_POST['confirm_delete_plugin'])) {
+
+        // Function to recursively delete directory
+        function dwp_recursive_delete($dir) {
+            if (!file_exists($dir)) {
+                return true;
+            }
+
+            if (!is_dir($dir)) {
+                return unlink($dir);
+            }
+
+            foreach (scandir($dir) as $item) {
+                if ($item == '.' || $item == '..') {
+                    continue;
+                }
+
+                if (!dwp_recursive_delete($dir . DIRECTORY_SEPARATOR . $item)) {
+                    return false;
+                }
+            }
+
+            return rmdir($dir);
+        }
+
+        // Attempt deletion
+        $deleted = dwp_recursive_delete($plugin_path);
+
+        if ($deleted) {
+            $output .= '
+            <div style="padding: 20px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px; color: #155724; font-family: sans-serif;">
+                <h2>✅ Success!</h2>
+                <p><strong>The dwp-gamification plugin folder has been deleted.</strong></p>
+                <h3>Next Steps:</h3>
+                <ol style="line-height: 1.8;">
+                    <li><strong>IMPORTANT:</strong> Go to Appearance → Theme File Editor and <strong>REMOVE this shortcode code</strong> from functions.php</li>
+                    <li>Delete this page</li>
+                    <li>Go to Plugins → Add New → Upload Plugin</li>
+                    <li>Upload the new <code>dwp-gamification.zip</code> file</li>
+                    <li>Activate the plugin</li>
+                </ol>
+                <p style="margin-top: 20px;">
+                    <a href="/wp-admin/plugins.php?page=plugin-install" style="display: inline-block; background: #5A7C59; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Upload New Plugin</a>
+                </p>
+            </div>';
+        } else {
+            $output .= '
+            <div style="padding: 20px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 5px; color: #721c24; font-family: sans-serif;">
+                <h2>❌ Deletion Failed</h2>
+                <p>Could not delete the plugin folder. Possible reasons:</p>
+                <ul>
+                    <li>File permissions are too restrictive</li>
+                    <li>Some files are in use</li>
+                    <li>Server configuration prevents deletion</li>
+                </ul>
+                <p><strong>Plugin path:</strong> <code>' . esc_html($plugin_path) . '</code></p>
+                <p>You may need to contact your hosting provider or use File Manager plugin.</p>
+            </div>';
+        }
+
+    } else {
+        // Show deletion form
+        $exists = file_exists($plugin_path);
+
+        if ($exists) {
+            $output .= '
+            <div style="padding: 20px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; color: #856404; font-family: sans-serif;">
+                <h2>⚠️ Delete DWP Gamification Plugin</h2>
+                <p><strong>Plugin folder found at:</strong></p>
+                <p><code>' . esc_html($plugin_path) . '</code></p>
+                <p><strong>This action will:</strong></p>
+                <ul style="line-height: 1.8;">
+                    <li>Permanently delete the entire plugin folder</li>
+                    <li>Remove all plugin files and contents</li>
+                    <li>Allow you to upload the new version</li>
+                </ul>
+                <p style="color: #721c24;"><strong>⚠️ Warning: This cannot be undone!</strong></p>
+                <form method="post" style="margin-top: 20px;">
+                    <button type="submit" name="confirm_delete_plugin" value="yes"
+                            style="background: #dc3545; color: white; padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;"
+                            onclick="return confirm(\'Are you absolutely sure you want to delete the dwp-gamification plugin folder?\')">
+                        🗑️ Delete Plugin Folder
+                    </button>
+                </form>
+            </div>';
+        } else {
+            $output .= '
+            <div style="padding: 20px; background: #d1ecf1; border: 1px solid #bee5eb; border-radius: 5px; color: #0c5460; font-family: sans-serif;">
+                <h2>ℹ️ Plugin Not Found</h2>
+                <p>The dwp-gamification plugin folder does not exist.</p>
+                <p>You can now upload the new version:</p>
+                <p style="margin-top: 20px;">
+                    <a href="/wp-admin/plugin-install.php?tab=upload" style="display: inline-block; background: #5A7C59; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Upload Plugin</a>
+                </p>
+            </div>';
+        }
+    }
+
+    return $output;
+});
+
+
+/**
+ * Step 2: Create a new page
+ * Go to: Pages → Add New
+ * Title: "Delete Plugin" (or anything you want)
+ * In the content editor, add this shortcode:
+ *
+ * [delete_dwp_plugin]
+ *
+ * Publish the page
+ *
+ *
+ * Step 3: Visit the page
+ * Click the "Delete Plugin Folder" button
+ *
+ *
+ * Step 4: After successful deletion
+ * - Remove this code from functions.php
+ * - Delete the page you created
+ * - Upload the new plugin
+ */

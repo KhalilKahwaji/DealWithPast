@@ -1,0 +1,121 @@
+// REPLACE THE ENTIRE check_auth() FUNCTION (from line 259 to around line 360) WITH THIS:
+
+    /**
+     * Check if user is authenticated (supports session cookies and Firebase JWT tokens)
+     */
+    public function check_auth($request) {
+        // First check WordPress session
+        if (is_user_logged_in()) {
+            return true;
+        }
+
+        // Check for JWT Bearer token in Authorization header
+        $auth_header = $request->get_header('authorization');
+        if (!$auth_header) {
+            return new WP_Error(
+                'rest_forbidden',
+                __('Authorization header missing.'),
+                array('status' => 401)
+            );
+        }
+
+        // Extract token from "Bearer <token>" format
+        if (preg_match('/Bearer\s+(.*)$/i', $auth_header, $matches)) {
+            $token = $matches[1];
+            error_log('DWP Auth: Received token (first 50 chars): ' . substr($token, 0, 50));
+
+            // Try to decode the Firebase JWT token
+            try {
+                // Split the JWT token (format: header.payload.signature)
+                $token_parts = explode('.', $token);
+                if (count($token_parts) !== 3) {
+                    error_log('DWP Auth: Invalid token format - parts count: ' . count($token_parts));
+                    throw new Exception('Invalid token format');
+                }
+
+                // Decode the payload (second part)
+                // Firebase tokens use base64url encoding
+                $payload_encoded = $token_parts[1];
+                $payload_json = base64_decode(strtr($payload_encoded, '-_', '+/'));
+                $payload = json_decode($payload_json);
+
+                if (!$payload) {
+                    error_log('DWP Auth: Failed to decode token payload. JSON: ' . substr($payload_json, 0, 100));
+                    throw new Exception('Failed to decode token payload');
+                }
+
+                error_log('DWP Auth: Token payload keys: ' . implode(', ', array_keys((array)$payload)));
+
+                // Firebase token has user_id (Firebase UID)
+                $firebase_uid = null;
+                if (isset($payload->user_id)) {
+                    $firebase_uid = $payload->user_id;
+                } elseif (isset($payload->sub)) {
+                    // 'sub' is the standard JWT claim for subject (user ID)
+                    $firebase_uid = $payload->sub;
+                }
+
+                if (!$firebase_uid) {
+                    error_log('DWP Auth: No user ID found in token. Available fields: ' . json_encode($payload));
+                    throw new Exception('No user ID found in token');
+                }
+
+                error_log('DWP Auth: Firebase UID extracted: ' . $firebase_uid);
+
+                // Find WordPress user with this Firebase UID
+                $users = get_users(array(
+                    'meta_key' => 'firebase_uid',
+                    'meta_value' => $firebase_uid,
+                    'number' => 1,
+                ));
+
+                error_log('DWP Auth: Users found by Firebase UID: ' . count($users));
+
+                if (empty($users)) {
+                    // User not found - try to get email from token and find by email
+                    $email = isset($payload->email) ? $payload->email : null;
+                    error_log('DWP Auth: Email from token: ' . ($email ? $email : 'none'));
+
+                    if ($email) {
+                        $user = get_user_by('email', $email);
+                        if ($user) {
+                            error_log('DWP Auth: User found by email: ' . $user->user_email . ' (ID: ' . $user->ID . ')');
+                            // Update their Firebase UID for future requests
+                            update_user_meta($user->ID, 'firebase_uid', $firebase_uid);
+                            wp_set_current_user($user->ID);
+                            error_log('DWP Auth: User authenticated successfully');
+                            return true;
+                        } else {
+                            error_log('DWP Auth: No user found with email: ' . $email);
+                        }
+                    }
+
+                    return new WP_Error(
+                        'rest_forbidden',
+                        __('DEBUG: No WP user found. Email from token: ' . ($email ? $email : 'NONE') . ' | Firebase UID: ' . $firebase_uid . ' | Token payload keys: ' . implode(', ', array_keys((array)$payload))),
+                        array('status' => 401)
+                    );
+                }
+
+                // Authenticate the user
+                $user = $users[0];
+                wp_set_current_user($user->ID);
+                error_log('DWP Auth: User authenticated by Firebase UID: ' . $user->user_email . ' (ID: ' . $user->ID . ')');
+                return true;
+
+            } catch (Exception $e) {
+                error_log('DWP Auth: Exception - ' . $e->getMessage());
+                return new WP_Error(
+                    'rest_forbidden',
+                    __('DEBUG: Auth exception - ' . $e->getMessage()),
+                    array('status' => 401)
+                );
+            }
+        }
+
+        return new WP_Error(
+            'rest_forbidden',
+            __('Invalid authorization header format.'),
+            array('status' => 401)
+        );
+    }

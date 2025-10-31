@@ -39,7 +39,12 @@
       "Bash(dir:*)",
       "Bash(powershell \"Get-ChildItem -Path lib/Repos/ -Name\")",
       "Bash(powershell \"Get-ChildItem -Path lib/widgets/ -Name\")",
-      "Bash(\"C:\\development\\flutter\\bin\\flutter.bat\" analyze --no-pub lib/Missions/)"
+      "Bash(\"C:\\development\\flutter\\bin\\flutter.bat\" analyze --no-pub lib/Missions/)",
+      "Bash(\"C:\\development\\flutter\\bin\\flutter.bat\" analyze --no-pub lib/Missions/create_mission.dart)",
+      "Bash(git rm:*)",
+      "Bash(del nul)",
+      "Bash(rm:*)",
+      "Bash(.gitignore)"
     ],
     "deny": [],
     "ask": []
